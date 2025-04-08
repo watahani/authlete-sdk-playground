@@ -1,0 +1,7 @@
+services:
+  worker:
+    env_file:
+      - ../../.env.local
+    volumes:
+      - ../../:/workspaces:cached
+    command: sleep infinity
