@@ -71,19 +71,34 @@ Or:
 
 1. Navigate to the GitHub repository in your browser.
 
-2. Click the “Code” button and select “Open with Codespaces.”
-
-3. Create a new Codespace.
-
-4. Set Authlete credentials as GitHub Codespaces secrets:
-   - Go to the repository settings
-   - Navigate to “Secrets > Codespaces”
+2. Set your Authlete credentials as GitHub Codespaces secrets:
+   - Go to the repository's settings
+   - Navigate to "Secrets > Codespaces"
    - Add the following secrets:
-     - `AUTHLETE_BASE_URL`
-     - `AUTHLETE_SERVICE_APIKEY`
-     - `AUTHLETE_SERVICE_APISECRET`
+      ```
+      AUTHLETE_BASE_URL=https://api.authlete.com  
+      AUTHLETE_SERVICE_APIKEY=your-api-key  
+      AUTHLETE_SERVICE_APISECRET=your-api-secret  
+      ```
+      
+      For v3:
 
-5. The Codespace will launch with the environment variables properly configured.
+      ```
+      AUTHLETE_BASE_URL=https://us.authlete.com  
+      AUTHLETE_SERVICE_APIKEY=your-api-key  
+      AUTHLETE_SERVICEOWNER_ACCESSTOKEN=your-api-token  
+      AUTHLETE_API_VERSION=3  
+      ```
+3. Click the "Code" button and select "Codespaces".  
+4. Choose "New with options".
+
+![Click '+' button and select 'New with option's](img/new-with-option.png)
+
+5. Select your preferred language from the Dev container configuration and create the Codespace.
+
+![Choose language in 'Dev container configuration'](img/select-configuration.png)
+
+6. The Codespace will launch with the environment variables properly configured.
 
 ## Running the Sample Application
 

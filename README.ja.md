@@ -72,19 +72,34 @@ Visual Studio CodeのDev Containers または GitHub Codespaces を使用する�
 
 1. ブラウザでGitHubリポジトリに移動します。
 
-2. 「Code」ボタンをクリックし、「Open with Codespaces」を選択します。
-
-3. 新しいCodespaceを作成します。
-
-4. Authlete認証情報をGitHub Codespacesのシークレットとして設定します：
+2. Authlete認証情報をGitHub Codespaces のシークレットとして設定します：
    - リポジトリの設定に移動します
    - 「Secrets > Codespaces」に移動します
    - 以下のシークレットを追加します：
-     - `AUTHLETE_BASE_URL`
-     - `AUTHLETE_SERVICE_APIKEY`
-     - `AUTHLETE_SERVICE_APISECRET`
+     ```
+     AUTHLETE_BASE_URL=https://api.authlete.com
+     AUTHLETE_SERVICE_APIKEY=your-api-key
+     AUTHLETE_SERVICE_APISECRET=your-api-secret
+     ```
 
-5. 環境変数が適切に構成された状態でCodespaceが起動します。
+     v3 の場合
+
+     ```
+     AUTHLETE_BASE_URL=https://us.authlete.com
+     AUTHLETE_SERVICE_APIKEY=your-api-key
+     AUTHLETE_SERVICEOWNER_ACCESSTOKEN=your-api-token
+     AUTHLETE_API_VERSION=3
+     ```
+3. 「Code」ボタンをクリックし、「Codespaces」を選択します。
+4. New with options を選択します。
+
+![Click '+' button and select 'New with option's](img/new-with-option.png)
+
+5. Dev container configuration から好きな言語を選択し、Codespace を作成します。
+
+![Choose language in 'Dec container configuration'](img/select-configuration.png)
+
+6. 環境変数が適切に構成された状態でCodespaceが起動します。
 
 ## サンプルアプリケーションの実行
 
