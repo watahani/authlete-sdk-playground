@@ -9,7 +9,7 @@ Visual Studio CodeのDev Containers または GitHub Codespaces を使用する�
 
 - ✅ Java
 - 🚧 C#（近日公開）
-- 🚧 Go（近日公開）
+- ✅ Go
 - 🚧 JavaScript（近日公開）
 - 🚧 Python（近日公開）
 - 🚧 Ruby（近日公開）
