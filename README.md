@@ -10,7 +10,7 @@ The following languages are currently implemented:
 
 - ✅ Java  
 - 🚧 C# (Coming Soon)  
-- 🚧 Go (Coming Soon)  
+- ✅ Go 
 - 🚧 JavaScript (Coming Soon)  
 - 🚧 Python (Coming Soon)  
 - 🚧 Ruby (Coming Soon)  
