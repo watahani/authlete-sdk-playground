@@ -70,9 +70,9 @@ Visual Studio CodeのDev Containers または GitHub Codespaces を使用する�
 
 ### GitHub Codespacesを使用する
 
-1. ブラウザでGitHubリポジトリに移動します。
+1. `Use this template` > `Create new repository` をクリックしてテンプレートリポジトリをコピーします
 
-2. Authlete認証情報をGitHub Codespaces のシークレットとして設定します：
+2. Authlete 認証情報をコピーしたリポジトリの GitHub Codespaces シークレットとして設定します：
    - リポジトリの設定に移動します
    - 「Secrets > Codespaces」に移動します
    - 以下のシークレットを追加します：

@@ -69,10 +69,10 @@ Or:
 
 ### Using GitHub Codespaces
 
-1. Navigate to the GitHub repository in your browser.
+1. Click `Use this template` and `Create new repository`
 
 2. Set your Authlete credentials as GitHub Codespaces secrets:
-   - Go to the repository's settings
+   - Go to copied repository's settings
    - Navigate to "Secrets > Codespaces"
    - Add the following secrets:
       ```
