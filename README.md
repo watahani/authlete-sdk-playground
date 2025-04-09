@@ -49,7 +49,7 @@ Or:
      ```
      AUTHLETE_BASE_URL=https://us.authlete.com
      AUTHLETE_SERVICE_APIKEY=your-api-key
-     AUTHLETE_SERVICEOWNER_ACCESSTOKEN=your-api-token
+     AUTHLETE_SERVICE_ACCESSTOKEN=your-api-token
      AUTHLETE_API_VERSION=3
      ```
 
@@ -86,7 +86,7 @@ Or:
       ```
       AUTHLETE_BASE_URL=https://us.authlete.com  
       AUTHLETE_SERVICE_APIKEY=your-api-key  
-      AUTHLETE_SERVICEOWNER_ACCESSTOKEN=your-api-token  
+      AUTHLETE_SERVICE_ACCESSTOKEN=your-api-token  
       AUTHLETE_API_VERSION=3  
       ```
 3. Click the "Code" button and select "Codespaces".  
