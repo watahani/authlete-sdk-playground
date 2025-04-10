@@ -106,7 +106,7 @@ Open the entry point file for the language (e.g., `src/main/java/com/authlete/sd
 
 ## Environment Variables
 
-The SDK uses the following environment variables:
+Some of SDK uses the following environment variables:
 
 | Variable | Description | Required |
 |----------|-------------|----------|
@@ -121,6 +121,15 @@ The SDK uses the following environment variables:
 | AUTHLETE_CLIENT_CERTIFICATE | Client certificate | No |
 | AUTHLETE_API_VERSION | Authlete API version | No |
 
+In this sample, for SDKs that support loading configuration from environment variables, that functionality is used.
+For SDKs that do not have such functionality, the client is instantiated by explicitly reading the following environment variables:
+
+- AUTHLETE_BASE_URL
+- AUTHLETE_SERVICE_APIKEY
+- AUTHLETE_SERVICE_APISECRET
+- AUTHLETE_SERVICE_ACCESSTOKEN
+- AUTHLETE_API_VERSION
+
 ## Customizing the Environment
 
 Each language environment can be customized by modifying the corresponding files:
@@ -132,6 +141,25 @@ Each language environment can be customized by modifying the corresponding files
 ## Contribution
 
 Contributions are welcome to add support for additional languages or improve existing implementations!
+
+I recommend starting your development by copying the contents under .devcontainer/java/.
+Here are the points you’ll need to update in the copied files:
+
+- `devcontainer.json`
+  - `name` : Adjust to match  the language you're working with
+  - `workspaceFolder`: Adjust to match the language you're working with
+  - `features`: Remove the Java-specific extensions and add features relevant to your language
+  - `customizations`.vscode.extensions: Specify the VSCode extensions needed for debugging your language
+  - `remoteUser`: Specify the `non-root user` provided by the container image you're using *
+- `docker-compose.yml`
+  - `context`: Update to match your language
+  - `build`: If you need to install additional tools or cache modules for the language, specify the appropriate folder as the build context. Otherwise, use the `image` property to directly set the development image
+- `{lang}/.gitignore`: Add a `.gitignore` file tailored to your language
+
+> * Some images may include a non-root user (such as `ubuntu`) in the base image.
+If not, you can add a non-root user as shown in [the Go sample](go/Dockerfile).
+
+Once you've made the above changes, try launching the DevContainer and begin creating source files in your chosen language (e.g., `npm init -y` for Node.js). 
 
 ## License
 

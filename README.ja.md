@@ -122,6 +122,15 @@ SDKでは以下の環境変数が使用されます：
 | AUTHLETE_CLIENT_CERTIFICATE | クライアント証明書 | いいえ |
 | AUTHLETE_API_VERSION | Authlete APIバージョン | いいえ |
 
+このサンプルでは、環境変数から設定を読み込む機能がある SDK については、その機能を使用しています。
+その機能がない SDK の場合は、以下の環境変数を明示的に読み取ってクライアントをインスタンス化しています。
+
+- AUTHLETE_BASE_URL
+- AUTHLETE_SERVICE_APIKEY
+- AUTHLETE_SERVICE_APISECRET
+- AUTHLETE_SERVICE_ACCESSTOKEN
+- AUTHLETE_API_VERSION
+
 ## 環境のカスタマイズ
 
 各言語環境は、対応するファイルを変更することでカスタマイズできます：
@@ -133,6 +142,30 @@ SDKでは以下の環境変数が使用されます：
 ## 貢献
 
 追加の言語のサポートを追加したり、既存の実装を改善したりするための貢献を歓迎します！
+言語のサポートを追加する場合、以下の手順がおすすめです。
+
+開発を始める際は、まず `.devcontainer/java/` 以下の内容をコピーすることをお勧めします。  
+以下は、コピーしたファイル内で更新が必要なポイントです：
+
+- `devcontainer.json`
+   - `name`：使用する言語に合わせて調整してください  
+   - `workspaceFolder`：使用する言語に合わせて調整してください  
+   - `features`：Java 固有の拡張機能は削除し、対象言語に関連する機能を追加してください  
+   - `customizations.vscode.extensions`：対象言語でデバッグするために必要な VSCode 拡張機能を指定してください  
+   - `remoteUser`：使用するコンテナイメージに含まれる `non-root user` を指定してください *
+
+- `docker-compose.yml`
+   - `context`：対象言語に合わせて更新してください  
+   - `build`：言語に関連する追加ツールのインストールやモジュールキャッシュが必要な場合は、適切なフォルダを `build context` に指定してください。  
+   　特に必要がない場合は、`image` プロパティを使用して開発用イメージを直接指定してください。
+
+- `{lang}/.gitignore`
+   - 使用言語に適した `.gitignore` ファイルを追加してください
+
+> ※ 一部のイメージには、ベースイメージに `ubuntu` などの非 root ユーザーが含まれている場合があります。  
+> そのようなユーザーが含まれていない場合は、[Go のサンプル](go/Dockerfile) のように非 root ユーザーを追加できます。
+
+これらの変更を加えたら、DevContainer を起動し、選択した言語でソースファイルの作成を始めてください（例：Node.js なら `npm init -y` など）。
 
 ## ライセンス
 
