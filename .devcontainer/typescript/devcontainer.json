@@ -1,36 +1,24 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/java
 {
 	"name": "TypeScript",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"dockerComposeFile": ["./docker-compose.yml", "../docker-compose-common.yml"],
-	"workspaceFolder": "/workspaces/typescript",
+	"dockerComposeFile": [
+	  "./docker-compose.yml"
+	],
+	"workspaceFolder": "../typescript",
 	"service": "worker",
+	"remoteUser": "vscode",
+	"updateRemoteUserUID": true,
 	"features": {
-		//"ghcr.io/devcontainers/features/java:1": {
-		//	"version": "none",
-		//	"installMaven": "true",
-		//	"installGradle": "false"
-		}
+	  "ghcr.io/devcontainers/features/node:1": {
+		"version": "20"
+	  }
 	},
 	"customizations": {
-		"vscode": {
-			"extensions": [
-				"ms-vscode.vscode-typescript-next"
-			]
-		}
-	},
-
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "java -version",
-
-	// Configure tool-specific properties.
-	// "customizations": {},
-
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	"remoteUser": "vscode",
-	"updateRemoteUserUID": true
-}
+	  "vscode": {
+		"extensions": [
+		  "ms-vscode.vscode-typescript-next",
+		  "dbaeumer.vscode-eslint"
+		]
+	  }
+	}
+  }
+  

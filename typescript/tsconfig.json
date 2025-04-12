@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist",  // Compiled files will go into the dist folder
+    "rootDir": "./src",  // TypeScript files are located in the src folder
+    "module": "CommonJS",
+    "target": "ES2020",
+    "strict": true
+  },
+  "include": ["src/**/*.ts"],  // Specify that TypeScript should compile files from the src folder
+  "exclude": ["node_modules"]
+}
