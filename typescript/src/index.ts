@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 
 const server = http.createServer((req: http.IncomingMessage, res: http.ServerResponse) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('Welcome, from your TypeScript API');
+  res.end('Welcome, from your TypeScript Authlete API');
 });
 
 server.listen(PORT, () => {
