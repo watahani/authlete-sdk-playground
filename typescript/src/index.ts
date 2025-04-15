@@ -3,6 +3,18 @@ console.log("hello, from typescript playground for authlete api")
 // src/index.ts (or dist/index.js after build)
 import * as http from 'http';
 
+// import authlete sdk
+import { AuthleteApiFactory } from 'https://deno.land/x/authlete_deno@v1.2.10/mod.ts';
+
+// Create a configuration object.
+// NOTE: Replace the following credentials with yours.
+const config = {
+    baseUrl:               'https://us.authlete.com/api',
+    serviceID:         '',
+    accessToken: '',
+    timeout:               10000
+};
+
 const PORT = process.env.PORT || 3000;
 
 const server = http.createServer((req: http.IncomingMessage, res: http.ServerResponse) => {
