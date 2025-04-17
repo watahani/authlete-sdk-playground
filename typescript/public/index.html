@@ -1,18 +1,20 @@
 <!DOCTYPE html>
-<<!DOCTYPE html>
 <html lang="en" dir="ltr">
   <head>
     <meta charset="utf-8">
     <title>Authlete TypeScript SDK Playground</title>
   </head>
   <body>
-    <h1>Authlete Form</h1>
-    <<form class="" action="index.html" method="post">
+    <h1>Authlete API Request Form</h1>
+    <form class="" action="index.html" method="post">
       <label for="service-id" id="serviceID">Service ID</label>
       <input type="text" id="serviceID" name="serviceID" value="">
       <label for="accessToken">Access Token</label>
-      <input type="text" id="access-tokename="" value="">
+      <input type="text" id="access-tokename=" value="">
+      <button type="submit">Submit</button>
     </form>
-    <script type="module" src="src/index.js"></script>
+    <div id="json-output">
+    </div>
+    <script type="module" src="../dist/index.js"></script>
   </body>
 </html>
