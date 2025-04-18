@@ -3,16 +3,23 @@
   <head>
     <meta charset="utf-8">
     <title>Authlete TypeScript SDK Playground</title>
+     <link rel="stylesheet" href="/style.css">
   </head>
   <body>
     <h1>Authlete API Request Form</h1>
-    <form class="" action="index.html" method="post">
-      <label for="service-id" id="serviceID">Service ID</label>
-      <input type="text" id="serviceID" name="serviceID" value="">
-      <label for="accessToken">Access Token</label>
-      <input type="text" id="access-tokename=" value="">
-      <button type="submit">Submit</button>
-    </form>
+    <form action="/submit" method="POST" style="background-color: #f9f9f9; padding: 2rem;">
+  <div>
+    <label for="service-id">Service ID</label>
+    <input type="text" id="service-id" name="service-id" required />
+  </div>
+
+  <div>
+    <label for="api-key">API Key</label>
+    <input type="password" id="api-key" name="api-key" required />
+  </div>
+
+  <button type="submit">Submit</button>
+</form>
     <div id="json-output">
     </div>
     <script type="module" src="../dist/index.js"></script>

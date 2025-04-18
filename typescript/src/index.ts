@@ -5,6 +5,16 @@ import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
 
+type RequestArgs = {
+  url: string;
+  method: string;
+  headers: Record<string, string>;
+  [key: string]: any;
+};
+
+import { Configuration, ClientManagementApi } from '@authlete/openapi-client';
+
+
 // Create a configuration object.
 // NOTE: Replace the following credentials with yours.
 const config = {
@@ -13,6 +23,43 @@ const config = {
     accessToken: '',
     timeout:               10000
 };
+
+type Middleware = {
+  pre?(request: RequestArgs): RequestArgs;
+};
+
+
+function getAuthToken(): string {
+  return process.env.AUTHLETE_SERVICEOWNER_ACCESSTOKEN || '';
+}
+
+export class AuthInterceptor extends Configuration {
+  private static config: AuthInterceptor;
+
+  private constructor() {
+    const middleware: Middleware[] = [
+      {
+        pre(request: RequestArgs): RequestArgs {
+          const token = getAuthToken();
+
+          return {
+            ...request,
+            headers: {
+              ...request.headers,
+              Authorization: `Bearer ${token}`,
+            },
+          };
+        },
+      },
+    ];
+
+    super({ middleware });
+  }
+
+  public static get Instance() {
+    return AuthInterceptor.config || (AuthInterceptor.config = new this());
+  }
+}
 
 const PORT = process.env.PORT || 3000;
 
@@ -28,6 +75,10 @@ const server = http.createServer((req, res) => {
     }
   })
 });
+
+const api = new ClientManagementApi(AuthInterceptor.Instance);
+
+console.log(api);
 
 server.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
