@@ -7,7 +7,7 @@
   </head>
   <body>
     <h1>Authlete API Request Form</h1>
-    <form action="/submit" method="POST" style="background-color: #f9f9f9; padding: 2rem;">
+    <form style="background-color: #f9f9f9; padding: 2rem;">
   <div>
     <label for="base-url">Base Url</label>
     <input type="text" id="base-url" name="base-url" required />
@@ -33,10 +33,13 @@
     <input type="text" id="apiVersion" name="apiVersion" required />
   </div>
 
-  <button type="submit">Submit</button>
+  <button onclick="req_send()" type="button">Submit</button>
 </form>
     <div id="json-output">
     </div>
     <script type="module" src="../dist/index.js"></script>
+    <script>
+       console.log("Page loaded at", new Date().toLocaleTimeString());
+   </script>
   </body>
 </html>
