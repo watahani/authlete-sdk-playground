@@ -9,13 +9,28 @@
     <h1>Authlete API Request Form</h1>
     <form action="/submit" method="POST" style="background-color: #f9f9f9; padding: 2rem;">
   <div>
-    <label for="service-id">Service ID</label>
-    <input type="text" id="service-id" name="service-id" required />
+    <label for="base-url">Base Url</label>
+    <input type="text" id="base-url" name="base-url" required />
   </div>
 
   <div>
     <label for="api-key">API Key</label>
-    <input type="password" id="api-key" name="api-key" required />
+    <input type="text" id="api-key" name="api-key" required />
+  </div>
+
+  <div>
+    <label for="apiSecret">API Secret</label>
+    <input type="password" id="apiSecret" name="apiSecret" required />
+  </div>
+
+  <div>
+    <label for="apiToken">API Token</label>
+    <input type="password" id="apiToken" name="apiToken" required />
+  </div>
+
+  <div>
+    <label for="apiVersion">API Version</label>
+    <input type="text" id="apiVersion" name="apiVersion" required />
   </div>
 
   <button type="submit">Submit</button>
