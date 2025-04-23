@@ -7,37 +7,55 @@
   </head>
   <body>
     <h1>Authlete API Request Form</h1>
-    <form style="background-color: #f9f9f9; padding: 2rem;">
-  <div>
-    <label for="base-url">Base Url</label>
-    <input type="text" id="base-url" name="base-url" required />
-  </div>
+    <form style="background-color: #f9f9f9; width: 65%; padding: 2rem;">
+      <span>Request Client List</span>
 
-  <div>
-    <label for="api-key">API Key</label>
-    <input type="text" id="api-key" name="api-key" required />
-  </div>
+      <div>
+        <label for="api-key">API Key</label>
+        <input type="text" id="api-key" name="api-key" required />
+      </div>
 
-  <div>
-    <label for="apiSecret">API Secret</label>
-    <input type="password" id="apiSecret" name="apiSecret" required />
-  </div>
+      <div>
+        <label for="apiSecret">Service API Secret</label>
+        <input type="password" id="apiSecret" name="apiSecret" required />
+      </div>
 
-  <div>
-    <label for="apiToken">API Token</label>
-    <input type="password" id="apiToken" name="apiToken" required />
-  </div>
+      <div>
+        <label for="apiToken">Access Token</label>
+        <input type="password" id="apiToken" name="apiToken" required />
+      </div>
 
-  <div>
-    <label for="apiVersion">API Version</label>
-    <input type="text" id="apiVersion" name="apiVersion" required />
-  </div>
-
-  <button onclick="req_send()" type="button">Submit</button>
-</form>
-    <div id="json-output">
+      <div>
+        <label for="apiVersion">API Version V2</label>
+      </div>
+      <button type="button" onclick="get_client_config()">Submit</button>
+  </form>
+  <form style="background-color: #f9f9f9; width: 65%; padding: 2rem;">
+    <span>Request Service List</span>
+    <div>
+      <label for="ser-api-key">API Key</label>
+      <input type="text" id="ser-api-key" name="ser-api-key" required />
     </div>
-    <script type="module" src="../dist/index.js"></script>
+
+    <div>
+      <label for="ser-apiSecret">Service API Secret</label>
+      <input type="password" id="ser-apiSecret" name="ser-apiSecret" required />
+    </div>
+
+    <div>
+      <label for="ser-apiToken">Access Token</label>
+      <input type="password" id="ser-apiToken" name="ser-apiToken" required />
+    </div>
+
+    <div>
+      <label for="ser-apiVersion">API Version V2</label>
+    </div>
+    <button type="button" onclick="get_service_config()()">Submit</button>
+  </form>
+  <div style="background-color: #827a82; width: 65%; padding: 2rem;" id="json-output">
+    <p>API Request Response</p>
+  </div>
+    <script src="script.js"></script>
     <script>
        console.log("Page loaded at", new Date().toLocaleTimeString());
    </script>

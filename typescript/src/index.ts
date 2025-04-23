@@ -1,12 +1,17 @@
+
+// src/index.ts (or dist/index.js after build)
+// server/index.ts
+
+
+import express from 'express';
+import path from 'path';
+
 console.log("hello, from typescript playground for authlete api");
 
 (globalThis as any).XMLHttpRequest = require('xhr2');
 
 
 // src/index.ts (or dist/index.js after build)
-import * as http from 'http';
-import * as fs from 'fs';
-import * as path from 'path';
 
 type RequestArgs = {
   url: string;
@@ -20,8 +25,8 @@ import { Configuration, ClientManagementApi, Middleware, ServiceManagementApi } 
 import { ClientAuthorizationGetListApiRequest } from '@authlete/openapi-client';
 
 
-
-//Get html elements
+const app = express();
+const port = 3000;
 
 const basePath = 'https://api.authlete.com';//(document.getElementById('base-url') as HTMLInputElement)?.value || 'https://api.authlete.com';
 // service api for service list const apikey = '19568184929257';//(document.getElementById('api-key') as HTMLInputElement)?.value || process.env.API_KEY;
@@ -75,49 +80,43 @@ export class AuthInterceptor extends Configuration {
 }
 
 
-const PORT = process.env.PORT || 3000;
 
-const server = http.createServer((req, res) => {
-  const file_path = path.join(__dirname, '../public', 'index.html');
-  fs.readFile(file_path, 'utf-8', (err, data) => {
-    if(err){
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end('Error reading the HTML file.');
-    }else {
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(data);
-    }
-  })
-});
 
 const api = new ClientManagementApi(AuthInterceptor.Instance);
 
 const new_api_service = new ServiceManagementApi(AuthInterceptor.Instance);
 
-
-//console.log(api);
-
-console.log('Service:::', new_api_service);
-
-
-/*new_api_service.serviceGetListApi({start: 0, end: 10}).subscribe({
-  next: (res) => console.log('V2 Service List:', res),
+api.clientGetListApi({ developer: 'kerin', start: 0, end: 10 }).subscribe({
+  next: (res) => console.log('Client List:', res),
   error: (err) => console.error('Error:', err)
-});*/
+});
 
-function req_send() {
-
-  api.clientGetListApi({ developer: 'kerin', start: 0, end: 10 }).subscribe({
-    next: (res) => console.log('Client List:', res),
+function service_req_send() {
+  new_api_service.serviceGetListApi({start: 0, end: 10}).subscribe({
+    next: (res) => console.log('V2 Service List:', res),
     error: (err) => console.error('Error:', err)
   });
+}
+
+function client_req_send() {
+  if(api){
+    api.clientGetListApi({ developer: 'kerin', start: 0, end: 10 }).subscribe({
+      next: (res) => console.log('Client List:', res),
+      error: (err) => console.error('Error:', err)
+    });
+
+  }
+  else{
+    console.log("INVALID CLIENT API Configuration");
+  }
 
 }
 
+// Serve static files from the 'public' directory
+app.use(express.static(path.join(__dirname, '../public')));
 
-
-server.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
 });
 
 //curl -v https://api.authlete.com/api/service/get/list?start=0\&end=5 \
