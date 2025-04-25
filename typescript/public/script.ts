@@ -1,65 +1,35 @@
-//Get html elements
+async function displayApiData() {
+  try {
+    const response = await fetch('/fetch-api-data');
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    const data = await response.json();
+    console.log('Data received from server:', data); // Check if data is correctly received in the browser console
+    // Get the div element where we want to display the data
+    const div = document.getElementById('api-data') as HTMLDivElement;
 
-export function get_client_config() {
-
-  const apikey_el = document.getElementById('api-key') as HTMLInputElement | null;
-  // service list const apiSecret = 'Zlkxn79lxNj8V0GrR6v9xBAQBYy45fc-ezIWkYFHDBo'; //(document.getElementById('apiSecret') as HTMLInputElement)?.value || process.env.API_SECRET;
-  const apiSecret_el = document.getElementById('apiSecret') as HTMLInputElement | null;
-  const apiVersion = 'v2';//(document.getElementById('apiVersion') as HTMLInputElement)?.value || 'v1';
-  const auth_token_el = document.getElementById('ser-apiToken') as HTMLInputElement | null;
-
-  if (apikey_el && apiSecret_el && auth_token_el){
-    const apikey = apikey_el.value;
-    const apiSecret = apiSecret_el.value;
-    const auth_token = auth_token_el.value;
-    console.log('Client Configuration:',apikey, apiSecret);
+    // Display the fetched API data as a string inside the div
+    if (data && data.clients && Array.isArray(data.clients) && data.clients.length > 0) {
+    // If clients is an array and has data, iterate over it
+    console.log("Clients array:", data.clients);
+    data.clients.forEach((client, index) => {
+      console.log(`Client ${index + 1}:`, client);
+      div.innerHTML = `<pre>${JSON.stringify(client, null, 2)}</pre>`;
+    });
+  } else {
+    // If clients is null or empty, display a message
+    console.log("No clients available or clients data is null.");
   }
-  else{
-    console.log('Client Configuration is missing');
-
+    const divcontent = `<h3>Start: ${JSON.stringify(data.start, null, 2)}</h3>
+     <h3>End: ${JSON.stringify(data.end, null, 2)}</h3>
+     <h3>developer: ${JSON.stringify(data.developer, null, 2)}</h3>
+     <h3>totalCount: ${JSON.stringify(data.totalCount, null, 2)}</h3>
+     <h3>clients: ${JSON.stringify(data.clients, null, 2)}</h3>`;
+    div.innerHTML = divcontent;
+  } catch (error) {
+    console.error('Error fetching API data:', error);
   }
-
-  client_req_send();
-
-
-
 }
 
-export function get_service_config() {
-
-  const apikey_el = document.getElementById('ser-api-key') as HTMLInputElement | null;
-  // service list const apiSecret = 'Zlkxn79lxNj8V0GrR6v9xBAQBYy45fc-ezIWkYFHDBo'; //(document.getElementById('apiSecret') as HTMLInputElement)?.value || process.env.API_SECRET;
-  const apiSecret_el = document.getElementById('ser-apiSecret') as HTMLInputElement | null;
-  const auth_token_el = document.getElementById('ser-apiToken') as HTMLInputElement | null;
-  const apiVersion = 'v2';//(document.getElementById('apiVersion') as HTMLInputElement)?.value || 'v1';
-
-  if (apikey_el && apiSecret_el && auth_token_el){
-    const apikey = apikey_el.value;
-    const apiSecret = apiSecret_el.value;
-    const auth_token = auth_token_el.value;
-    console.log('SERVICE Configuration:',apikey,apiSecret);
-  }
-  else{
-    console.log('Service Configuration is missing');
-  }
-
-  service_req_send();
-
-}
-
-
-
-/*new_api_service.serviceGetListApi({start: 0, end: 10}).subscribe({
-  next: (res) => console.log('V2 Service List:', res),
-  error: (err) => console.error('Error:', err)
-});*/
-
-
-// Expose it to global `window` so HTML can see it:
-(window as any).client_req_send = client_req_send;
-(window as any).get_client_config = get_client_config;
-
-//curl -v https://api.authlete.com/api/service/get/list?start=0\&end=5 \
-//-u '19568184929257:Zlkxn79lxNj8V0GrR6v9xBAQBYy45fc-ezIWkYFHDBo'
-
-//curl -v https://api.authlete.com/api/service/get/353960042211339 \
+window.onload = displayApiData;

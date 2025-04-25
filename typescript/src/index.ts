@@ -1,14 +1,22 @@
 
 // src/index.ts (or dist/index.js after build)
 // server/index.ts
-
-
+import dotenv from 'dotenv';
 import express from 'express';
+import bodyParser from 'body-parser';
 import path from 'path';
+
+dotenv.config();
 
 console.log("hello, from typescript playground for authlete api");
 
 (globalThis as any).XMLHttpRequest = require('xhr2');
+
+const app = express();
+const port = 3000;
+
+app.use(express.static(path.join(__dirname, '../public')));
+
 
 
 // src/index.ts (or dist/index.js after build)
@@ -25,21 +33,23 @@ import { Configuration, ClientManagementApi, Middleware, ServiceManagementApi } 
 import { ClientAuthorizationGetListApiRequest } from '@authlete/openapi-client';
 
 
-const app = express();
-const port = 3000;
-
 const basePath = 'https://api.authlete.com';//(document.getElementById('base-url') as HTMLInputElement)?.value || 'https://api.authlete.com';
 // service api for service list const apikey = '19568184929257';//(document.getElementById('api-key') as HTMLInputElement)?.value || process.env.API_KEY;
-const apikey = '353960042211339';
+const apikey = process.env.API_KEY as string;
 // service list const apiSecret = 'Zlkxn79lxNj8V0GrR6v9xBAQBYy45fc-ezIWkYFHDBo'; //(document.getElementById('apiSecret') as HTMLInputElement)?.value || process.env.API_SECRET;
-const apiSecret = 'C4wvqbJYEq3g5ddbQP_0QsivDq-5FKqY_dvSg6rfoI0';
+const apiSecret = process.env.API_SECRET as string;
 const apiVersion = 'v2';//(document.getElementById('apiVersion') as HTMLInputElement)?.value || 'v1';
 
 
 
 function getAuthToken(): string {
-  return 'Xj_-CVjgplKvhu-TVogzbO05tbvXYJxFxwsxWbSjC00';
+
+  return process.env.API_TOKEN as string;
 }
+
+console.log("API Key:", apikey);
+console.log("API Secret:", apiSecret);
+
 
 export class AuthInterceptor extends Configuration {
   private static config: AuthInterceptor;
@@ -79,9 +89,6 @@ export class AuthInterceptor extends Configuration {
   }
 }
 
-
-
-
 const api = new ClientManagementApi(AuthInterceptor.Instance);
 
 const new_api_service = new ServiceManagementApi(AuthInterceptor.Instance);
@@ -90,6 +97,29 @@ api.clientGetListApi({ developer: 'kerin', start: 0, end: 10 }).subscribe({
   next: (res) => console.log('Client List:', res),
   error: (err) => console.error('Error:', err)
 });
+
+app.get('/fetch-api-data', async (req, res) => {
+  try {
+    const data = await new Promise((resolve, reject) => {
+      api.clientGetListApi({ developer: 'kerin', start: 0, end: 10 }).subscribe({
+        next: (response) => {
+          console.log('Client List:', response);
+          resolve(response);
+        },
+        error: (err) => {
+          console.error('Error fetching client list:', err);
+          reject(err);
+        }
+      });
+    });
+
+    res.json(data);  // Directly return the API response
+  } catch (error) {
+    console.error('Error fetching client list:', error);
+    res.status(500).json({ error: 'Failed to fetch data' });
+  }
+});
+
 
 function service_req_send() {
   new_api_service.serviceGetListApi({start: 0, end: 10}).subscribe({
@@ -111,13 +141,10 @@ function client_req_send() {
   }
 
 }
-
-// Serve static files from the 'public' directory
-app.use(express.static(path.join(__dirname, '../public')));
-
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
+
 
 //curl -v https://api.authlete.com/api/service/get/list?start=0\&end=5 \
 //-u '19568184929257:Zlkxn79lxNj8V0GrR6v9xBAQBYy45fc-ezIWkYFHDBo'
