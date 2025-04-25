@@ -36,7 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 function displayApiData() {
     return __awaiter(this, void 0, void 0, function () {
-        var response, data, div_1, divcontent, error_1;
+        var response, data, div, divcontent, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -51,22 +51,9 @@ function displayApiData() {
                 case 2:
                     data = _a.sent();
                     console.log('Data received from server:', data); // Check if data is correctly received in the browser console
-                    div_1 = document.getElementById('api-data');
-                    // Display the fetched API data as a string inside the div
-                    if (data && data.clients && Array.isArray(data.clients) && data.clients.length > 0) {
-                        // If clients is an array and has data, iterate over it
-                        console.log("Clients array:", data.clients);
-                        data.clients.forEach(function (client, index) {
-                            console.log("Client ".concat(index + 1, ":"), client);
-                            div_1.innerHTML = "<pre>".concat(JSON.stringify(client, null, 2), "</pre>");
-                        });
-                    }
-                    else {
-                        // If clients is null or empty, display a message
-                        console.log("No clients available or clients data is null.");
-                    }
-                    divcontent = "<h3>Start: ".concat(JSON.stringify(data.start, null, 2), "</h3>\n     <h3>End: ").concat(JSON.stringify(data.end, null, 2), "</h3>\n     <h3>developer: ").concat(JSON.stringify(data.developer, null, 2), "</h3>\n     <h3>totalCount: ").concat(JSON.stringify(data.totalCount, null, 2), "</h3>\n     <h3>clients: ").concat(JSON.stringify(data.clients, null, 2), "</h3>");
-                    div_1.innerHTML = divcontent;
+                    div = document.getElementById('ser-api-data');
+                    divcontent = "<h3>Start: ".concat(JSON.stringify(data.start, null, 2), "</h3>\n     <h3>End: ").concat(JSON.stringify(data.end, null, 2), "</h3>\n     <h3>totalCount: ").concat(JSON.stringify(data.totalCount, null, 2), "</h3>\n     <h3>services: ").concat(JSON.stringify(data.services, null, 2), "</h3>");
+                    div.innerHTML = divcontent;
                     return [3 /*break*/, 4];
                 case 3:
                     error_1 = _a.sent();

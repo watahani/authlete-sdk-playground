@@ -35,10 +35,17 @@ import { ClientAuthorizationGetListApiRequest } from '@authlete/openapi-client';
 
 const basePath = 'https://api.authlete.com';//(document.getElementById('base-url') as HTMLInputElement)?.value || 'https://api.authlete.com';
 // service api for service list const apikey = '19568184929257';//(document.getElementById('api-key') as HTMLInputElement)?.value || process.env.API_KEY;
-const apikey = process.env.API_KEY as string;
-// service list const apiSecret = 'Zlkxn79lxNj8V0GrR6v9xBAQBYy45fc-ezIWkYFHDBo'; //(document.getElementById('apiSecret') as HTMLInputElement)?.value || process.env.API_SECRET;
-const apiSecret = process.env.API_SECRET as string;
 const apiVersion = 'v2';//(document.getElementById('apiVersion') as HTMLInputElement)?.value || 'v1';
+
+//uncomment the following if you want to test client list
+//const apikey = process.env.API_KEY as string;
+  // service list const apiSecret = 'Zlkxn79lxNj8V0GrR6v9xBAQBYy45fc-ezIWkYFHDBo'; //(document.getElementById('apiSecret') as HTMLInputElement)?.value || process.env.API_SECRET;
+//uncomment the following spiSecret if you want to test client list
+//const apiSecret = process.env.API_SECRET as string;
+
+const apikey = process.env.ACCOUNT_API_KEY as string;
+  // service list const apiSecret = 'Zlkxn79lxNj8V0GrR6v9xBAQBYy45fc-ezIWkYFHDBo'; //(document.getElementById('apiSecret') as HTMLInputElement)?.value || process.env.API_SECRET;
+const apiSecret = process.env.ACCOUNT_API_SECRET as string;
 
 
 
@@ -101,9 +108,10 @@ api.clientGetListApi({ developer: 'kerin', start: 0, end: 10 }).subscribe({
 app.get('/fetch-api-data', async (req, res) => {
   try {
     const data = await new Promise((resolve, reject) => {
-      api.clientGetListApi({ developer: 'kerin', start: 0, end: 10 }).subscribe({
+      //change following code to match your request
+      new_api_service.serviceGetListApi({start: 0, end: 10}).subscribe({
         next: (response) => {
-          console.log('Client List:', response);
+          console.log('Service List:', response);
           resolve(response);
         },
         error: (err) => {
@@ -115,18 +123,16 @@ app.get('/fetch-api-data', async (req, res) => {
 
     res.json(data);  // Directly return the API response
   } catch (error) {
-    console.error('Error fetching client list:', error);
+    console.error('Error fetching Service list:', error);
     res.status(500).json({ error: 'Failed to fetch data' });
   }
 });
 
 
-function service_req_send() {
-  new_api_service.serviceGetListApi({start: 0, end: 10}).subscribe({
+new_api_service.serviceGetListApi({start: 0, end: 10}).subscribe({
     next: (res) => console.log('V2 Service List:', res),
     error: (err) => console.error('Error:', err)
   });
-}
 
 function client_req_send() {
   if(api){
