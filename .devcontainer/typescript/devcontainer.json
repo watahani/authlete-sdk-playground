@@ -6,7 +6,7 @@
 	],
 	"workspaceFolder": "/workspaces/typescript",
 	"service": "worker",
-	"remoteUser": "vscode",
+	"remoteUser": "node",
 	"updateRemoteUserUID": true,
 	"features": {
 	  "ghcr.io/devcontainers/features/node:1": {
