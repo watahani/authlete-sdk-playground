@@ -1,7 +1,8 @@
 {
 	"name": "TypeScript",
 	"dockerComposeFile": [
-	  "./docker-compose.yml"
+	  "./docker-compose.yml",
+	  "../docker-compose-common.yml"
 	],
 	"workspaceFolder": "../typescript",
 	"service": "worker",
