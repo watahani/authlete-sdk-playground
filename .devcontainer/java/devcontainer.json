@@ -6,13 +6,6 @@
 	"dockerComposeFile": ["./docker-compose.yml", "../docker-compose-common.yml"],
 	"workspaceFolder": "/workspaces/java",
 	"service": "worker",
-	"features": {
-		"ghcr.io/devcontainers/features/java:1": {
-			"version": "none",
-			"installMaven": "true",
-			"installGradle": "false"
-		}
-	},
 	"customizations": {
 		"vscode": {
 			"extensions": [
