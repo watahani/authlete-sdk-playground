@@ -15,12 +15,8 @@ RUN npm install -g typescript
 # Copy the rest of the application source code
 COPY . .
 
-# Build TypeScript files and run the app
-RUN npm run build
-
-# Expose the port your app will run on
-EXPOSE 3000
-
+# Install Dependencies
+RUN npm install
 
 # Start the application
 CMD ["npm", "start"]
