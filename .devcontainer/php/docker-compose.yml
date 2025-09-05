@@ -1,0 +1,9 @@
+services:
+  worker:
+    build:
+      context: ../../php
+      dockerfile: Dockerfile
+    # Expose Xdebug port if needed
+    ports:
+      - "9003:9003"
+

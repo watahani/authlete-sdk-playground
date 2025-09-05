@@ -13,7 +13,8 @@ Visual Studio CodeのDev Containers または GitHub Codespaces を使用する�
 - 🚧 JavaScript（近日公開）
 - 🚧 Python（近日公開）
 - 🚧 Ruby（近日公開）
-- 🚧 TypeScript（近日公開）
+- ✅ TypeScript
+- ✅ PHP
 
 ## 前提条件
 
@@ -36,15 +37,14 @@ Visual Studio CodeのDev Containers または GitHub Codespaces を使用する�
    ```
 
 2. Authlete認証情報を設定します：
-   - `.env.dev`を`.env`にコピーします（存在しない場合）
-   - `.env`を編集してAuthlete認証情報を追加します：
+   - リポジトリ直下の `.env.local` を編集し、認証情報を設定します：
      ```
      AUTHLETE_BASE_URL=https://api.authlete.com
      AUTHLETE_SERVICE_APIKEY=your-api-key
      AUTHLETE_SERVICE_APISECRET=your-api-secret
      ```
 
-     v3 の場合
+     v3 の場合：
 
      ```
      AUTHLETE_BASE_URL=https://us.authlete.com
@@ -82,7 +82,7 @@ Visual Studio CodeのDev Containers または GitHub Codespaces を使用する�
      AUTHLETE_SERVICE_APISECRET=your-api-secret
      ```
 
-     v3 の場合
+     v3 の場合：
 
      ```
      AUTHLETE_BASE_URL=https://us.authlete.com
@@ -99,7 +99,7 @@ Visual Studio CodeのDev Containers または GitHub Codespaces を使用する�
 
 ![Choose language in 'Dec container configuration'](img/select-configuration.png)
 
-6. 環境変数が適切に構成された状態でCodespaceが起動します。
+6. 環境変数が適切に構成された状態で Codespace が起動します。
 
 ## サンプルアプリケーションの実行
 

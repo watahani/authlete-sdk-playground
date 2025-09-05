@@ -1,0 +1,20 @@
+{
+  "name": "PHP",
+  "dockerComposeFile": [
+    "./docker-compose.yml",
+    "../docker-compose-common.yml"
+  ],
+  "workspaceFolder": "/workspaces/php",
+  "service": "worker",
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": true,
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "xdebug.php-debug",
+        "bmewburn.vscode-intelephense-client"
+      ]
+    }
+  }
+}
+
