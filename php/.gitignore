@@ -1,0 +1,6 @@
+/vendor/
+/.phpactor.json
+/.php-cs-fixer.cache
+.idea/
+composer.lock
+

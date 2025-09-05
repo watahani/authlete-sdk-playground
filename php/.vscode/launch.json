@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Listen for Xdebug (PHP)",
+      "type": "php",
+      "request": "launch",
+      "port": 9003,
+      "log": false,
+      "ignore": [
+        "**/vendor/**/*.php"
+      ]
+    },
+    {
+      "name": "Run: php src/main.php",
+      "type": "php",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/main.php",
+      "cwd": "${workspaceFolder}",
+      "runtimeArgs": [
+        "-dxdebug.start_with_request=yes"
+      ],
+      "env": {
+        // Environment is injected from .env.local via docker-compose-common
+
+      }
+    }
+  ]
+}
+

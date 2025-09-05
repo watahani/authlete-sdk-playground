@@ -1,0 +1,17 @@
+{
+  "name": "authlete/sdklab-php-sample",
+  "description": "Sample console app using authlete/authlete-php",
+  "type": "project",
+  "require": {
+    "php": ">=8.1",
+    "authlete/authlete": "^1.13"
+  },
+  "autoload": {
+    "psr-4": {
+      "Authlete\\SdkLab\\": "src/"
+    }
+  },
+  "config": {
+    "sort-packages": true
+  }
+}
