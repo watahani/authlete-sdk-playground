@@ -2,4 +2,6 @@ services:
   worker:
     env_file:
       - ../../.env.local
+    volumes:
+      - ../../:/workspace-root:cached
     command: sleep infinity
