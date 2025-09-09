@@ -5,6 +5,7 @@
 	  "../docker-compose-common.yml"
 	],
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,consistency=cached",
 	"service": "worker",
 	"remoteUser": "node",
 	"updateRemoteUserUID": true,
