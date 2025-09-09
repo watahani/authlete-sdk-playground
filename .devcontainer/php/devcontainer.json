@@ -4,7 +4,7 @@
     "./docker-compose.yml",
     "../docker-compose-common.yml"
   ],
-  "workspaceFolder": "/workspace-root/php",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}/php",
   "service": "worker",
   "remoteUser": "vscode",
   "updateRemoteUserUID": true,

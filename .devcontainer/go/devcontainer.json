@@ -4,7 +4,7 @@
 	"name": "Go",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"dockerComposeFile": ["./docker-compose.yml", "../docker-compose-common.yml"],
-	"workspaceFolder": "/workspace-root/go",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}/go",
 	"service": "worker",
 	"features": {
 	},

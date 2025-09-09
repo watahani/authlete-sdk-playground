@@ -4,7 +4,7 @@
 	  "./docker-compose.yml",
 	  "../docker-compose-common.yml"
 	],
-	"workspaceFolder": "/workspace-root/typescript",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}/typescript",
 	"service": "worker",
 	"remoteUser": "node",
 	"updateRemoteUserUID": true,
