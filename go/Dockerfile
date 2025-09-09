@@ -21,13 +21,13 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 
 USER $USERNAME
+WORKDIR /workspaces/go
 
-COPY go.mod go.sum ./
+# Place module files in a writable workspace owned by the user
+COPY --chown=${USERNAME}:${USER_GID} go.mod go.sum ./
 
 # install modules for cache
 RUN go mod download
 
 # install dlv for debugging
 RUN go install github.com/go-delve/delve/cmd/dlv@latest
-
-RUN rm go.mod go.sum
