@@ -2,4 +2,6 @@ services:
   worker:
     env_file:
       - ../../.env.local
+    volumes:
+      - ../../:/workspaces/authlete-sdk-playground:cached 
     command: sleep infinity
