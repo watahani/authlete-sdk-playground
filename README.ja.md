@@ -117,8 +117,7 @@ SDKでは以下の環境変数が使用されます：
 | AUTHLETE_SERVICE_APISECRET | AuthleteサービスのAPIシークレット | はい (v2) |
 | AUTHLETE_SERVICEOWNER_APIKEY | AuthleteサービスオーナーのAPIキー | いいえ |
 | AUTHLETE_SERVICEOWNER_APISECRET | AuthleteサービスオーナーのAPIシークレット | いいえ |
-| AUTHLETE_SERVICEOWNER_ACCESSTOKEN | Authleteサービスオーナーのアクセストークン | いいえ (v3) |
-| AUTHLETE_SERVICE_ACCESSTOKEN | Authleteサービスのアクセストークン | いいえ |
+| AUTHLETE_SERVICE_ACCESSTOKEN | Authleteサービスのアクセストークン | はい (v3) |
 | AUTHLETE_DPOP_KEY | DPoPキー | いいえ |
 | AUTHLETE_CLIENT_CERTIFICATE | クライアント証明書 | いいえ |
 | AUTHLETE_API_VERSION | Authlete APIバージョン | いいえ |
