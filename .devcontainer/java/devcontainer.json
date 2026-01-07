@@ -4,6 +4,7 @@
 	"name": "Java",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"dockerComposeFile": ["./docker-compose.yml", "../docker-compose-common.yml"],
+	"initializeCommand": "bash .devcontainer/scripts/ensure-env.sh",
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}/java",
 	"service": "worker",
 	"customizations": {
