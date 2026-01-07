@@ -38,7 +38,7 @@ Or:
    ```
 
 2. Set up Authlete credentials:
-   - Copy `.env.local.example` to `.env.local` (required when running Dev Containers locally so Docker can load the values).
+   - Copy `.env.local.example` to `.env.local` (required when running Dev Containers locally so Docker can load the values). In GitHub Codespaces the file is auto-created if missing, but providing `.env.local` locally avoids errors.
    - Edit `.env.local` to add your Authlete credentials:
      ```
      AUTHLETE_BASE_URL=https://api.authlete.com

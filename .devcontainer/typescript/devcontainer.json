@@ -4,6 +4,7 @@
 	  "./docker-compose.yml",
 	  "../docker-compose-common.yml"
 	],
+	"initializeCommand": "bash .devcontainer/scripts/ensure-env.sh",
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}/typescript",
 	"service": "worker",
 	"remoteUser": "node",
