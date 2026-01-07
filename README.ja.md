@@ -37,6 +37,7 @@ Visual Studio CodeのDev Containers または GitHub Codespaces を使用する�
    ```
 
 2. Authlete認証情報を設定します：
+   - `.env.local.example` を `.env.local` にコピーします（ローカルで Dev Container を動かす場合に必須です）。
    - リポジトリ直下の `.env.local` を編集し、認証情報を設定します：
      ```
      AUTHLETE_BASE_URL=https://api.authlete.com
