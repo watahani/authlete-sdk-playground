@@ -117,8 +117,7 @@ Some of SDK uses the following environment variables:
 | AUTHLETE_SERVICE_APISECRET | API secret of the Authlete service | Yes (v2) |
 | AUTHLETE_SERVICEOWNER_APIKEY | API key of the Authlete service owner | No |
 | AUTHLETE_SERVICEOWNER_APISECRET | API secret of the Authlete service owner | No |
-| AUTHLETE_SERVICEOWNER_ACCESSTOKEN | Access token of the Authlete service owner | No (v3) |
-| AUTHLETE_SERVICE_ACCESSTOKEN | Access token of the Authlete service | No |
+| AUTHLETE_SERVICE_ACCESSTOKEN | Access token of the Authlete service | Yes (v3) |
 | AUTHLETE_DPOP_KEY | DPoP key | No |
 | AUTHLETE_CLIENT_CERTIFICATE | Client certificate | No |
 | AUTHLETE_API_VERSION | Authlete API version | No |
