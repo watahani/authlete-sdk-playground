@@ -8,18 +8,32 @@
 	"service": "worker",
 	"remoteUser": "node",
 	"updateRemoteUserUID": true,
-	"features": {
-	  "ghcr.io/devcontainers/features/node:1": {
-		"version": "20"
-	  }
-	},
 	"customizations": {
-	  "vscode": {
-		"extensions": [
-		  "ms-vscode.vscode-typescript-next",
-		  "dbaeumer.vscode-eslint"
-		]
-	  }
-	}
+	   "vscode": {
+            "extensions": [
+                "ms-vscode.vscode-typescript-tslint-plugin",
+                "esbenp.prettier-vscode",
+                "github.vscode-pull-request-github"
+            ],
+            "settings": {
+                "files.eol": "\n",
+                "editor.formatOnSave": true,
+                "typescript.tsc.autoDetect": "on",
+                "typescript.updateImportsOnFileMove.enabled": "always",
+                "typescript.preferences.importModuleSpecifier": "relative",
+                "[typescript]": {
+                    "editor.codeActionsOnSave": {
+                        "source.organizeImports": true
+                    }
+                },
+                "[typescriptreact]": {
+                    "editor.codeActionsOnSave": {
+                        "source.organizeImports": true
+                    }
+                }
+            }
+        }
+	},
+	"postCreateCommand": "npm install"
   }
   

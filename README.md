@@ -38,6 +38,7 @@ Or:
    ```
 
 2. Set up Authlete credentials:
+   - Copy `.env.local.example` to `.env.local` (required when running Dev Containers locally so Docker can load the values).
    - Edit `.env.local` to add your Authlete credentials:
      ```
      AUTHLETE_BASE_URL=https://api.authlete.com

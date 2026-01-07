@@ -1,0 +1,25 @@
+{
+	"name": "TypeScript (Deprecated)",
+	"dockerComposeFile": [
+	  "./docker-compose.yml",
+	  "../docker-compose-common.yml"
+	],
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}/typescript",
+	"service": "worker",
+	"remoteUser": "node",
+	"updateRemoteUserUID": true,
+	"features": {
+	  "ghcr.io/devcontainers/features/node:1": {
+		"version": "20"
+	  }
+	},
+	"customizations": {
+	  "vscode": {
+		"extensions": [
+		  "ms-vscode.vscode-typescript-next",
+		  "dbaeumer.vscode-eslint"
+		]
+	  }
+	}
+  }
+  

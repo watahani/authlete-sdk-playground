@@ -1,50 +1,33 @@
-# Authlete  TypeScript SDK Playground
+# TypeScript Console App
 
-This sdk playground will help you test TypeScript samples for the [Authlete API](https://docs.authlete.com/en/shared/2.3.0#overview).
-Currently, this sdk playground supports Authlete version 2.
+This sample uses the [Authlete TypeScript SDK](https://github.com/authlete/authlete-typescript-sdk) inside a Dev Container.
+It mirrors the workflow described in the repository root `README.md`: configure `.env.local`, choose the *TypeScript* Dev Container configuration, and hit F5 (or run `npm run dev`) to execute the sample.
 
-This project uses [openapi-for-typescript](https://github.com/authlete/openapi-for-typescript/tree/main).
+> `.devcontainer/docker-compose-common.yml` automatically loads the repository root `.env.local` file.
+> Define every variable there (or in GitHub Codespaces Environment Variables) so all language samples share the same credentials.
 
-## Cloning the authlete-sdk-playground Repo
+> **Note:** This TypeScript sample targets the Authlete API v3 and requires both a service API key (`AUTHLETE_SERVICE_APIKEY`) and a bearer/service access token (`AUTHLETE_SERVICE_ACCESSTOKEN`). v2 API credentials are not supported here.
 
-Clone the `authlete-sdk-playground` repository using the following command:
+## Preparing environment variables
 
-```
-git clone https://github.com/kerinkhan/authlete-sdk-playground.git
-```
+1. Open the repository root `.env.local` (shared by every sample) or define environment variables in GitHub Codespaces.
+2. Provide the required values:
+   - `AUTHLETE_BASE_URL` – e.g. `https://us.authlete.com`
+   - `AUTHLETE_SERVICE_APIKEY` – service identifier used by the sample requests.
+   - `AUTHLETE_SERVICE_ACCESSTOKEN` – a service-scoped access token.
 
-## Configure the  .env file
+## Running the sample
 
-Configure the values in the .env file to match your Authlete Credentials. You can find this file under authlete-sdk-playground/typescript
+```bash
+# Install dependencies (already done inside the Dev Container image cache)
+npm install
 
-```
-# In the Authlete web console, navigate to the your services tab and copy your api key and secret
-API_KEY=YOUR_API_KEY
-API_SECRET=YOUR_API_SECRET
-API_TOKEN=YOUR_API_TOKEN
+# Run directly from TypeScript sources
+npm run dev
 
-
-# In the Authlete web console, navigate to the your account tab and copy your api key and secret
-ACCOUNT_API_KEY=Your_ACCOUNT_API_KEY
-ACCOUNT_API_SECRET=YOUR_ACCOUNT_API_KEY
-```
-## Start Express Server
-
-Once you have Configured your values, you can now start the server. Use the following command to start the server:
-
-```
-npx nodemon src/index.ts
+# Or build + run from the compiled JavaScript output
+npm run build
+npm start
 ```
 
-This will allow you to change your code and the build at the same time.
-
-You can also use docker to build your server and project. To use docker, go to authlete-sdk-playground/.devcontainer
-/TypeScript. Use the following command to start the docker container:
-
-```
-docker compose up --build
-```
-
-##  Response in browser
-
-To view the API Response for list of services, click on http://localhost:3000/. Your express.js server should be up and running.
+The script lists the clients under the configured service (using `authlete.client.list`) to verify that the provided API key + access token combination is working correctly.
