@@ -39,12 +39,36 @@ jobs:
         if: steps.changes.outputs.changed == 'true'
         run: mvn -f java-jaxrs/pom.xml -DskipTests compile
 
+      - name: Extract Authlete versions
+        if: steps.changes.outputs.changed == 'true'
+        id: versions
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          pom = Path("java-jaxrs/pom.xml").read_text(encoding="utf-8")
+          def get(key):
+              m = re.search(rf"<{re.escape(key)}>([^<]+)</{re.escape(key)}>", pom)
+              if not m:
+                  raise SystemExit(f"Missing {key}")
+              return m.group(1).strip()
+
+          common = get("authlete.java.common.version")
+          jaxrs = get("authlete.java.jaxrs.version")
+
+          with open("versions.env", "w", encoding="utf-8") as f:
+              f.write(f"COMMON_VERSION={common}\n")
+              f.write(f"JAXRS_VERSION={jaxrs}\n")
+          PY
+          cat versions.env >> "$GITHUB_OUTPUT"
+
       - name: Create pull request
         if: steps.changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
-          commit-message: "chore(java-jaxrs): sync Authlete versions"
-          title: "chore(java-jaxrs): sync Authlete versions"
+          commit-message: "chore(java-jaxrs): sync Authlete versions (common v${{ steps.versions.outputs.COMMON_VERSION }}, jaxrs v${{ steps.versions.outputs.JAXRS_VERSION }})"
+          title: "chore(java-jaxrs): sync Authlete versions (common v${{ steps.versions.outputs.COMMON_VERSION }}, jaxrs v${{ steps.versions.outputs.JAXRS_VERSION }})"
           body: |
             This PR syncs Authlete-related versions in `java-jaxrs/pom.xml`
             with the latest values from the Authlete java-oauth-server `pom.xml`.
