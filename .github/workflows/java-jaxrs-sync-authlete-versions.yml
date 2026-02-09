@@ -1,0 +1,59 @@
+name: Sync java-jaxrs Authlete versions
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "8"
+          cache: maven
+
+      - name: Update java-jaxrs properties from java-oauth-server
+        run: .github/scripts/update_java_jaxrs_versions.py
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compile java-jaxrs (no tests)
+        if: steps.changes.outputs.changed == 'true'
+        run: mvn -f java-jaxrs/pom.xml -DskipTests compile
+
+      - name: Create pull request
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore(java-jaxrs): sync Authlete versions"
+          title: "chore(java-jaxrs): sync Authlete versions"
+          body: |
+            This PR syncs Authlete-related versions in `java-jaxrs/pom.xml`
+            with the latest values from the Authlete java-oauth-server `pom.xml`.
+
+            - Source: https://github.com/authlete/java-oauth-server/blob/master/pom.xml
+            - Checks: `mvn -f java-jaxrs/pom.xml -DskipTests compile`
+
+            TODO: add tests and switch to test execution when available.
+          branch: "chore/java-jaxrs-sync-authlete-versions"
+          delete-branch: true
+          add-paths: |
+            java-jaxrs/pom.xml
