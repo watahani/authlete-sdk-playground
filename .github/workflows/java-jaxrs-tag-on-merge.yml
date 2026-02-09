@@ -1,0 +1,48 @@
+name: Tag java-jaxrs on merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute tag
+        id: tag
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          pom = Path("java-jaxrs/pom.xml").read_text(encoding="utf-8")
+          def get(key):
+              m = re.search(rf"<{re.escape(key)}>([^<]+)</{re.escape(key)}>", pom)
+              if not m:
+                  raise SystemExit(f"Missing {key}")
+              return m.group(1).strip()
+
+          common = get("authlete.java.common.version")
+          jaxrs = get("authlete.java.jaxrs.version")
+          tag = f"java-v{common}-jaxrs-v{jaxrs}"
+
+          with open("tag.env", "w", encoding="utf-8") as f:
+              f.write(f"TAG_NAME={tag}\n")
+          PY
+          cat tag.env >> "$GITHUB_OUTPUT"
+
+      - name: Create tag
+        run: |
+          TAG="${{ steps.tag.outputs.TAG_NAME }}"
+          git tag -f "$TAG"
+          git push --force origin "refs/tags/$TAG"
