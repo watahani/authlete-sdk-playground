@@ -1,5 +1,11 @@
 FROM ruby:3.4-slim-bookworm
 
+# Install tools commonly needed
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create a non-root user similar to other language samples
 ARG USERNAME=vscode
 ARG USER_UID=1000
