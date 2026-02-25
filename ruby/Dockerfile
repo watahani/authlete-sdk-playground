@@ -3,6 +3,7 @@ FROM ruby:3.4-slim-bookworm
 # Install tools commonly needed
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+       build-essential \
        curl \
     && rm -rf /var/lib/apt/lists/*
 
