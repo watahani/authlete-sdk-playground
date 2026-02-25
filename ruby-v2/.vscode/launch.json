@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "rdbg",
+      "name": "Run: ruby main.rb",
+      "request": "launch",
+      "script": "${workspaceFolder}/main.rb",
+      "args": [],
+      "askParameters": false
+    }
+  ]
+}

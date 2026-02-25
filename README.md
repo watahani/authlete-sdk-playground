@@ -13,7 +13,8 @@ The following languages are currently implemented:
 - ✅ Go 
 - 🚧 JavaScript (Coming Soon)  
 - 🚧 Python (Coming Soon)  
-- 🚧 Ruby (Coming Soon)  
+- ✅ Ruby (v2)
+- 🚧 Ruby (v3, Coming Soon)
 - ✅ TypeScript
 - ✅ PHP  
 

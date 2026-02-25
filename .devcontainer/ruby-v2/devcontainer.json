@@ -1,0 +1,20 @@
+{
+  "name": "Ruby (v2)",
+  "dockerComposeFile": [
+    "./docker-compose.yml",
+    "../docker-compose-common.yml"
+  ],
+  "initializeCommand": "bash .devcontainer/scripts/ensure-env.sh",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}/ruby-v2",
+  "service": "worker",
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": true,
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "KoichiSasada.vscode-rdbg",
+        "Shopify.ruby-lsp"
+      ]
+    }
+  }
+}
