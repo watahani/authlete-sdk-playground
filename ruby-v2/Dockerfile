@@ -6,6 +6,10 @@ RUN apt-get update \
        curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Pre-install gems for faster container startup (run as root to write to system gem path)
+COPY Gemfile /tmp/Gemfile
+RUN cd /tmp && bundle install
+
 # Create a non-root user similar to other language samples
 ARG USERNAME=vscode
 ARG USER_UID=1000
@@ -15,7 +19,3 @@ RUN groupadd --gid $USER_GID $USERNAME \
 
 USER $USERNAME
 WORKDIR /workspaces/ruby-v2
-
-# Pre-install gems for faster container startup
-COPY --chown=$USERNAME Gemfile .
-RUN bundle install
