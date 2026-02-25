@@ -14,7 +14,7 @@ The following languages are currently implemented:
 - 🚧 JavaScript (Coming Soon)  
 - 🚧 Python (Coming Soon)  
 - ✅ Ruby (v2)
-- 🚧 Ruby (v3, Coming Soon)
+- ✅ Ruby (v3)
 - ✅ TypeScript
 - ✅ PHP  
 
