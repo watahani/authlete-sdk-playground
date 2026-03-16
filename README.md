@@ -8,15 +8,17 @@ By using Visual Studio Code Dev Containers or GitHub Codespaces, you can launch 
 
 The following languages are currently implemented:
 
-- ✅ Java  
-- 🚧 C# (Coming Soon)  
-- ✅ Go 
-- 🚧 JavaScript (Coming Soon)  
-- 🚧 Python (Coming Soon)  
-- ✅ Ruby (v2)
-- ✅ Ruby (v3)
-- ✅ TypeScript
-- ✅ PHP  
+| Language | Status | Open in Codespaces |
+|----------|--------|--------------------|
+| Java | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/java/devcontainer.json) |
+| C# | 🚧 Coming Soon | |
+| Go | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/go/devcontainer.json) |
+| JavaScript | 🚧 Coming Soon | |
+| Python | 🚧 Coming Soon | |
+| Ruby (v2) | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/ruby-v2/devcontainer.json) |
+| Ruby (v3) | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/ruby/devcontainer.json) |
+| TypeScript | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/typescript/devcontainer.json) |
+| PHP | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/php/devcontainer.json) |
 
 ## Prerequisites
 
