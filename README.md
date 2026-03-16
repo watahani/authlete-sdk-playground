@@ -11,6 +11,7 @@ The following languages are currently implemented:
 | Language | Status | Open in Codespaces |
 |----------|--------|--------------------|
 | Java | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/java/devcontainer.json) |
+| Java JAX-RS | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/java-jaxrs/devcontainer.json) |
 | C# | 🚧 Coming Soon | |
 | Go | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/go/devcontainer.json) |
 | JavaScript | 🚧 Coming Soon | |
