@@ -1,0 +1,84 @@
+name: Update Java authlete-java-common
+
+on:
+  schedule:
+    - cron: "27 3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get latest version from Maven Central
+        id: latest
+        run: |
+          VERSION=$(python3 - <<'PY'
+          import urllib.request
+          import xml.etree.ElementTree as ET
+
+          url = "https://repo1.maven.org/maven2/com/authlete/authlete-java-common/maven-metadata.xml"
+          with urllib.request.urlopen(url) as r:
+              tree = ET.parse(r)
+          release = tree.findtext("versioning/release") or tree.findtext("versioning/latest")
+          print(release)
+          PY
+          )
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Get current version
+        id: current
+        run: |
+          VERSION=$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          pom = Path("java/pom.xml").read_text(encoding="utf-8")
+          m = re.search(r"<authlete\.java\.common\.version>([^<]+)</authlete\.java\.common\.version>", pom)
+          if not m:
+              raise SystemExit("authlete.java.common.version not found in java/pom.xml")
+          print(m.group(1).strip())
+          PY
+          )
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Update pom.xml
+        if: steps.latest.outputs.version != steps.current.outputs.version
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          new_ver = "${{ steps.latest.outputs.version }}"
+          path = Path("java/pom.xml")
+          content = path.read_text(encoding="utf-8")
+          content = re.sub(
+              r"(<authlete\.java\.common\.version>)[^<]+(</authlete\.java\.common\.version>)",
+              rf"\g<1>{new_ver}\g<2>",
+              content,
+          )
+          path.write_text(content, encoding="utf-8")
+          PY
+
+      - name: Create pull request
+        if: steps.latest.outputs.version != steps.current.outputs.version
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore(java): update authlete-java-common to v${{ steps.latest.outputs.version }}"
+          title: "chore(java): update authlete-java-common to v${{ steps.latest.outputs.version }}"
+          body: |
+            This PR updates `authlete-java-common` in `java/pom.xml` to the latest version from Maven Central.
+
+            - Package: [authlete-java-common](https://central.sonatype.com/artifact/com.authlete/authlete-java-common)
+            - Previous version: `${{ steps.current.outputs.version }}`
+            - New version: `${{ steps.latest.outputs.version }}`
+          branch: "chore/java-update-authlete-java-common"
+          delete-branch: true
+          add-paths: |
+            java/pom.xml
