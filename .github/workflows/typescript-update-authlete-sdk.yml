@@ -1,0 +1,66 @@
+name: Update TypeScript @authlete/typescript-sdk
+
+on:
+  schedule:
+    - cron: "37 3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Get latest beta version
+        id: latest
+        working-directory: typescript
+        run: |
+          LATEST=$(npm view @authlete/typescript-sdk dist-tags.beta 2>/dev/null || npm view @authlete/typescript-sdk versions --json | node -e "
+            const v = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
+            const betas = v.filter(x => x.includes('beta'));
+            console.log(betas.at(-1));
+          ")
+          echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
+
+      - name: Get current version
+        id: current
+        working-directory: typescript
+        run: |
+          CURRENT=$(node -e "
+            const lock = require('./package-lock.json');
+            console.log(lock.packages['node_modules/@authlete/typescript-sdk'].version);
+          ")
+          echo "version=${CURRENT}" >> "$GITHUB_OUTPUT"
+
+      - name: Install updated package
+        if: steps.latest.outputs.version != steps.current.outputs.version
+        working-directory: typescript
+        run: npm install @authlete/typescript-sdk@${{ steps.latest.outputs.version }}
+
+      - name: Create pull request
+        if: steps.latest.outputs.version != steps.current.outputs.version
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore(typescript): update @authlete/typescript-sdk to v${{ steps.latest.outputs.version }}"
+          title: "chore(typescript): update @authlete/typescript-sdk to v${{ steps.latest.outputs.version }}"
+          body: |
+            This PR updates `@authlete/typescript-sdk` in `typescript/package.json` and `package-lock.json` to the latest beta version.
+
+            - Package: [@authlete/typescript-sdk](https://www.npmjs.com/package/@authlete/typescript-sdk)
+            - Previous version: `${{ steps.current.outputs.version }}`
+            - New version: `${{ steps.latest.outputs.version }}`
+          branch: "chore/typescript-update-authlete-typescript-sdk"
+          delete-branch: true
+          add-paths: |
+            typescript/package.json
+            typescript/package-lock.json

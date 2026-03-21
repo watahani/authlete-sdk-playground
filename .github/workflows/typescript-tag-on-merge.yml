@@ -1,0 +1,35 @@
+name: Tag typescript on merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute tag
+        id: tag
+        working-directory: typescript
+        run: |
+          VERSION=$(node -e "
+            const lock = require('./package-lock.json');
+            console.log(lock.packages['node_modules/@authlete/typescript-sdk'].version);
+          ")
+          echo "TAG_NAME=typescript-authlete-typescript-sdk-v${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Create tag
+        run: |
+          TAG="${{ steps.tag.outputs.TAG_NAME }}"
+          git tag -f "$TAG"
+          git push --force origin "refs/tags/$TAG"
