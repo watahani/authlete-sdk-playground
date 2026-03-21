@@ -5,19 +5,24 @@ on:
     - cron: "37 3 * * *"
   workflow_dispatch: {}
 
-permissions:
-  contents: write
-  pull-requests: write
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions: {}
 
 jobs:
   update:
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
         with:
           node-version: "22"
 
@@ -30,6 +35,10 @@ jobs:
             const betas = v.filter(x => x.includes('beta'));
             console.log(betas.at(-1));
           ")
+          if ! echo "$LATEST" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'; then
+            echo "::error::Invalid version format: $LATEST"
+            exit 1
+          fi
           echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
 
       - name: Get current version
@@ -45,11 +54,13 @@ jobs:
       - name: Install updated package
         if: steps.latest.outputs.version != steps.current.outputs.version
         working-directory: typescript
-        run: npm install @authlete/typescript-sdk@${{ steps.latest.outputs.version }}
+        env:
+          SDK_VERSION: ${{ steps.latest.outputs.version }}
+        run: npm install "@authlete/typescript-sdk@${SDK_VERSION}"
 
       - name: Create pull request
         if: steps.latest.outputs.version != steps.current.outputs.version
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e  # v7.0.8
         with:
           commit-message: "chore(typescript): update @authlete/typescript-sdk to v${{ steps.latest.outputs.version }}"
           title: "chore(typescript): update @authlete/typescript-sdk to v${{ steps.latest.outputs.version }}"

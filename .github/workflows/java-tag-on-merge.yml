@@ -4,17 +4,20 @@ on:
   pull_request:
     types: [closed]
     branches: [main]
+    paths:
+      - "java/pom.xml"
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   tag:
     if: github.event.pull_request.merged == true
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
         with:
           fetch-depth: 0
 
@@ -29,13 +32,21 @@ jobs:
           m = re.search(r"<authlete\.java\.common\.version>([^<]+)</authlete\.java\.common\.version>", pom)
           if not m:
               raise SystemExit("authlete.java.common.version not found in java/pom.xml")
-          print(m.group(1).strip())
+          version = m.group(1).strip()
+          if not re.match(r'^[0-9]+\.[0-9]+(\.[0-9]+)*(-[a-zA-Z0-9.]+)?$', version):
+              raise SystemExit(f"Invalid version format: {version}")
+          print(version)
           PY
           )
           echo "TAG_NAME=java-authlete-java-common-v${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Create tag
+        env:
+          TAG: ${{ steps.tag.outputs.TAG_NAME }}
         run: |
-          TAG="${{ steps.tag.outputs.TAG_NAME }}"
-          git tag -f "$TAG"
-          git push --force origin "refs/tags/$TAG"
+          if git rev-parse "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping"
+            exit 0
+          fi
+          git tag "$TAG"
+          git push origin "refs/tags/$TAG"
