@@ -14,7 +14,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-    <authlete.java.common.version>4.22</authlete.java.common.version>
+    <authlete.java.common.version>4.39</authlete.java.common.version>
     <maven.compiler.plugin.version>3.10.1</maven.compiler.plugin.version>
     <maven.jar.plugin.version>3.4.2</maven.jar.plugin.version>
     <maven.compiler.release>21</maven.compiler.release>
