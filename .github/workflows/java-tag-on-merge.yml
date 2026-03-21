@@ -1,0 +1,41 @@
+name: Tag java on merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute tag
+        id: tag
+        run: |
+          VERSION=$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          pom = Path("java/pom.xml").read_text(encoding="utf-8")
+          m = re.search(r"<authlete\.java\.common\.version>([^<]+)</authlete\.java\.common\.version>", pom)
+          if not m:
+              raise SystemExit("authlete.java.common.version not found in java/pom.xml")
+          print(m.group(1).strip())
+          PY
+          )
+          echo "TAG_NAME=java-authlete-java-common-v${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Create tag
+        run: |
+          TAG="${{ steps.tag.outputs.TAG_NAME }}"
+          git tag -f "$TAG"
+          git push --force origin "refs/tags/$TAG"
