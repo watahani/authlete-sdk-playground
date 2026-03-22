@@ -31,42 +31,44 @@ jobs:
       - name: Install build dependencies
         run: sudo apt-get install -y --no-install-recommends build-essential
 
+      - name: Get current authlete_ruby_sdk version
+        id: before
+        working-directory: ruby
+        run: |
+          VERSION=$(bundle exec ruby -e "require 'bundler'; puts Bundler.locked_gems.specs.find { |s| s.name == 'authlete_ruby_sdk' }.version")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
       - name: Update authlete_ruby_sdk
         working-directory: ruby
         run: bundle update authlete_ruby_sdk
 
-      - name: Detect changes
+      - name: Detect authlete_ruby_sdk version change
         id: changes
-        run: |
-          if git diff --quiet; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Extract new version
-        if: steps.changes.outputs.changed == 'true'
-        id: version
         working-directory: ruby
         run: |
-          VERSION=$(bundle exec ruby -e "require 'bundler'; puts Bundler.locked_gems.specs.find { |s| s.name == 'authlete_ruby_sdk' }.version")
-          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(\.pre\.[a-zA-Z0-9]+)?$'; then
-            echo "::error::Invalid version format: $VERSION"
+          NEW_VERSION=$(bundle exec ruby -e "require 'bundler'; puts Bundler.locked_gems.specs.find { |s| s.name == 'authlete_ruby_sdk' }.version")
+          if ! echo "$NEW_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(\.pre\.[a-zA-Z0-9]+)?$'; then
+            echo "::error::Invalid version format: $NEW_VERSION"
             exit 1
           fi
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          if [ "$NEW_VERSION" != "${{ steps.before.outputs.version }}" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Create pull request
         if: steps.changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e  # v7.0.8
         with:
-          commit-message: "chore(ruby): update authlete_ruby_sdk to v${{ steps.version.outputs.version }}"
-          title: "chore(ruby): update authlete_ruby_sdk to v${{ steps.version.outputs.version }}"
+          commit-message: "chore(ruby): update authlete_ruby_sdk to v${{ steps.changes.outputs.version }}"
+          title: "chore(ruby): update authlete_ruby_sdk to v${{ steps.changes.outputs.version }}"
           body: |
             This PR updates `authlete_ruby_sdk` in `ruby/Gemfile.lock` to the latest available version.
 
             - Package: [authlete_ruby_sdk](https://rubygems.org/gems/authlete_ruby_sdk)
-            - New version: `${{ steps.version.outputs.version }}`
+            - New version: `${{ steps.changes.outputs.version }}`
           branch: "chore/ruby-update-authlete-ruby-sdk"
           delete-branch: true
           add-paths: |
