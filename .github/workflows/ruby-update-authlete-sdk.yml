@@ -35,7 +35,7 @@ jobs:
         id: before
         working-directory: ruby
         run: |
-          VERSION=$(bundle exec ruby -e "require 'bundler'; puts Bundler.locked_gems.specs.find { |s| s.name == 'authlete_ruby_sdk' }.version")
+          VERSION=$(ruby -e "require 'bundler'; puts Bundler::LockfileParser.new(File.read('Gemfile.lock')).specs.find { |s| s.name == 'authlete_ruby_sdk' }.version")
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Update authlete_ruby_sdk
