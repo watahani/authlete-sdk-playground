@@ -23,7 +23,7 @@ GEM
     multipart-post (2.4.1)
     net-http (0.9.1)
       uri (>= 0.11.1)
-    sorbet-runtime (0.6.13051)
+    sorbet-runtime (0.6.13055)
     uri (1.1.1)
 
 PLATFORMS
