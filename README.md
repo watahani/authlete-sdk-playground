@@ -37,8 +37,8 @@ Or:
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/your-organization/authlete-sdk-executor.git
-   cd authlete-sdk-executor
+   git clone https://github.com/watahani/authlete-sdk-playground.git
+   cd authlete-sdk-playground
    ```
 
 2. Set up Authlete credentials:
