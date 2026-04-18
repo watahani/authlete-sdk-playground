@@ -57,12 +57,10 @@ jobs:
           ruby <<'RUBY'
           new_version = ENV.fetch('NEW_VERSION')
           content = File.read('Gemfile')
-          updated = content.sub(
-            /(gem\s+['"]authlete_ruby_sdk['"]\s*,\s*)['"][^'"]+['"]/,
-            %Q(\\1'#{new_version}')
-          )
-          raise "Failed to update authlete_ruby_sdk pin in Gemfile" if updated == content
-          File.write('Gemfile', updated)
+          pattern = /(gem\s+['"]authlete_ruby_sdk['"]\s*,\s*)['"][^'"]+['"]/
+          raise "authlete_ruby_sdk pin not found in Gemfile" unless content.match?(pattern)
+          updated = content.sub(pattern, %Q(\\1'#{new_version}'))
+          File.write('Gemfile', updated) unless updated == content
           RUBY
 
       - name: Update authlete_ruby_sdk
