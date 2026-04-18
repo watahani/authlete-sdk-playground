@@ -48,6 +48,23 @@ jobs:
           VERSION=$(ruby -e "require 'bundler'; puts Bundler::LockfileParser.new(File.read('Gemfile.lock')).specs.find { |s| s.name == 'authlete_ruby_sdk' }.version")
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
+      - name: Update Gemfile pin
+        if: steps.latest.outputs.version != steps.current.outputs.version
+        working-directory: ruby
+        env:
+          NEW_VERSION: ${{ steps.latest.outputs.version }}
+        run: |
+          ruby <<'RUBY'
+          new_version = ENV.fetch('NEW_VERSION')
+          content = File.read('Gemfile')
+          updated = content.sub(
+            /(gem\s+['"]authlete_ruby_sdk['"]\s*,\s*)['"][^'"]+['"]/,
+            %Q(\\1'#{new_version}')
+          )
+          raise "Failed to update authlete_ruby_sdk pin in Gemfile" if updated == content
+          File.write('Gemfile', updated)
+          RUBY
+
       - name: Update authlete_ruby_sdk
         if: steps.latest.outputs.version != steps.current.outputs.version
         working-directory: ruby
