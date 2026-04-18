@@ -30,11 +30,18 @@ jobs:
         id: latest
         working-directory: typescript
         run: |
-          LATEST=$(npm view @authlete/typescript-sdk dist-tags.beta 2>/dev/null || npm view @authlete/typescript-sdk versions --json | node -e "
-            const v = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
-            const betas = v.filter(x => x.includes('beta'));
-            console.log(betas.at(-1));
-          ")
+          LATEST=$(npm view @authlete/typescript-sdk dist-tags.beta 2>/dev/null || true)
+          if [ -z "$LATEST" ]; then
+            LATEST=$(npm view @authlete/typescript-sdk versions --json | node -e "
+              const v = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
+              const betas = v.filter(x => x.includes('beta'));
+              if (betas.length === 0) {
+                process.stderr.write('No beta version found on registry\n');
+                process.exit(1);
+              }
+              console.log(betas[betas.length - 1]);
+            ")
+          fi
           if ! echo "$LATEST" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'; then
             echo "::error::Invalid version format: $LATEST"
             exit 1
