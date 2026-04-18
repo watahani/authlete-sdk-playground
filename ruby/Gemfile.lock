@@ -1,7 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    authlete_ruby_sdk (0.0.5.pre.beta)
+    authlete_ruby_sdk (1.0.0)
       base64 (>= 0.2.0, < 1.0)
       faraday (>= 2.14.1)
       faraday-multipart (~> 1.2.0)
@@ -18,12 +18,12 @@ GEM
       net-http (~> 0.5)
     faraday-retry (2.4.0)
       faraday (~> 2.0)
-    json (2.19.2)
+    json (2.19.3)
     logger (1.7.0)
     multipart-post (2.4.1)
     net-http (0.9.1)
       uri (>= 0.11.1)
-    sorbet-runtime (0.6.13051)
+    sorbet-runtime (0.6.13133)
     uri (1.1.1)
 
 PLATFORMS
@@ -31,7 +31,7 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  authlete_ruby_sdk (= 0.0.5.pre.beta)
+  authlete_ruby_sdk (= 1.0.0)
 
 RUBY VERSION
    ruby 3.4.8p72
