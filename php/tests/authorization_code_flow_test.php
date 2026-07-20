@@ -11,7 +11,7 @@
 require __DIR__ . '/../vendor/autoload.php';
 
 use Authlete\Api\AuthleteApiImpl;
-use Authlete\Conf\AuthleteEnvConfiguration;
+use Authlete\Conf\AuthleteSimpleConfiguration;
 use Authlete\Dto\AuthorizationAction;
 use Authlete\Dto\AuthorizationIssueAction;
 use Authlete\Dto\AuthorizationIssueRequest;
@@ -43,22 +43,39 @@ function queryValue(string $url, string $key): ?string
     return isset($params[$key]) ? (string)$params[$key] : null;
 }
 
-$apiVersion = (string)getenv('AUTHLETE_API_VERSION');
-if (in_array(strtoupper($apiVersion), ['3', 'V3'], true))
+// Prefer the version-specific AUTHLETE_V2_* variables; fall back to the
+// plain AUTHLETE_* variables when they hold a V2 configuration.
+$baseUrl   = (string)getenv('AUTHLETE_V2_BASE_URL');
+$apiKey    = (string)getenv('AUTHLETE_V2_SERVICE_APIKEY');
+$apiSecret = (string)getenv('AUTHLETE_V2_SERVICE_APISECRET');
+
+if ($baseUrl === '' && $apiKey === '' && $apiSecret === '')
 {
-    echo "SKIP: authlete/authlete supports only the Authlete V2 API\n";
+    $apiVersion = strtoupper((string)getenv('AUTHLETE_API_VERSION'));
+    if (in_array($apiVersion, ['3', 'V3'], true))
+    {
+        echo "SKIP: authlete/authlete supports only the Authlete V2 API\n";
+        exit(0);
+    }
+
+    $baseUrl   = (string)getenv('AUTHLETE_BASE_URL');
+    $apiKey    = (string)getenv('AUTHLETE_SERVICE_APIKEY');
+    $apiSecret = (string)getenv('AUTHLETE_SERVICE_APISECRET');
+}
+
+if ($baseUrl === '' || $apiKey === '' || $apiSecret === '')
+{
+    echo "SKIP: AUTHLETE_V2_BASE_URL, AUTHLETE_V2_SERVICE_APIKEY and AUTHLETE_V2_SERVICE_APISECRET"
+        . " (or plain AUTHLETE_* V2 credentials) are required\n";
     exit(0);
 }
 
-$required = ['AUTHLETE_BASE_URL', 'AUTHLETE_SERVICE_APIKEY', 'AUTHLETE_SERVICE_APISECRET'];
-$missing  = array_values(array_filter($required, fn($key) => (string)getenv($key) === ''));
-if (count($missing) > 0)
-{
-    echo 'SKIP: missing Authlete env vars: ' . implode(', ', $missing) . "\n";
-    exit(0);
-}
+$conf = new AuthleteSimpleConfiguration();
+$conf->setBaseUrl($baseUrl);
+$conf->setServiceApiKey($apiKey);
+$conf->setServiceApiSecret($apiSecret);
 
-$api      = new AuthleteApiImpl(new AuthleteEnvConfiguration());
+$api      = new AuthleteApiImpl($conf);
 $created  = null;
 $exitCode = 0;
 

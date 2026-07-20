@@ -22,24 +22,30 @@ const (
 // create client -> /auth/authorization -> /auth/authorization/issue ->
 // /auth/token -> /auth/introspection -> delete client.
 func TestAuthorizationCodeFlow(t *testing.T) {
-	baseURL := os.Getenv("AUTHLETE_BASE_URL")
-	apiKey := os.Getenv("AUTHLETE_SERVICE_APIKEY")
-	apiSecret := os.Getenv("AUTHLETE_SERVICE_APISECRET")
-	apiVersion := os.Getenv("AUTHLETE_API_VERSION")
+	// Prefer the version-specific variables; fall back to the plain ones
+	// when they hold a V2 configuration.
+	baseURL := os.Getenv("AUTHLETE_V2_BASE_URL")
+	apiKey := os.Getenv("AUTHLETE_V2_SERVICE_APIKEY")
+	apiSecret := os.Getenv("AUTHLETE_V2_SERVICE_APISECRET")
 
-	if v := strings.TrimSpace(apiVersion); strings.EqualFold(v, "V3") || v == "3" {
-		t.Skip("openapi-for-go supports only the Authlete V2 API")
+	if baseURL == "" && apiKey == "" && apiSecret == "" {
+		if v := strings.TrimSpace(os.Getenv("AUTHLETE_API_VERSION")); strings.EqualFold(v, "V3") || v == "3" {
+			t.Skip("openapi-for-go supports only the Authlete V2 API")
+		}
+		baseURL = os.Getenv("AUTHLETE_BASE_URL")
+		apiKey = os.Getenv("AUTHLETE_SERVICE_APIKEY")
+		apiSecret = os.Getenv("AUTHLETE_SERVICE_APISECRET")
 	}
 	if baseURL == "" || apiKey == "" || apiSecret == "" {
-		t.Skip("AUTHLETE_BASE_URL, AUTHLETE_SERVICE_APIKEY and AUTHLETE_SERVICE_APISECRET are required")
+		t.Skip("AUTHLETE_V2_BASE_URL, AUTHLETE_V2_SERVICE_APIKEY and AUTHLETE_V2_SERVICE_APISECRET (or plain AUTHLETE_* V2 credentials) are required")
 	}
 
-	apiClient, err := createSimpleClient(baseURL, apiVersion)
+	apiClient, err := createSimpleClient(baseURL, "")
 	if err != nil {
 		t.Fatalf("failed to create Authlete client: %v", err)
 	}
 
-	ctx, err := createAPIContext(apiKey, apiSecret, "", apiVersion)
+	ctx, err := createAPIContext(apiKey, apiSecret, "", "")
 	if err != nil {
 		t.Fatalf("failed to create API context: %v", err)
 	}

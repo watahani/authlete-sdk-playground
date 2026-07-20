@@ -13,17 +13,19 @@ class AuthorizationCodeFlowTest < Minitest::Test
 
   REDIRECT_URI = 'https://sdk-playground.example.com/callback'
   SUBJECT = 'sdk-playground-user'
-  REQUIRED_ENV = %w[AUTHLETE_BASE_URL AUTHLETE_SERVICE_APIKEY AUTHLETE_SERVICE_ACCESSTOKEN].freeze
 
   def test_authorization_code_flow
-    missing = REQUIRED_ENV.select { |key| ENV[key].to_s.empty? }
-    skip("Missing Authlete env vars: #{missing.join(', ')}") unless missing.empty?
+    # Prefer the version-specific variables; fall back to the plain ones.
+    base_url = env_or_fallback('AUTHLETE_V3_BASE_URL', 'AUTHLETE_BASE_URL')
+    service_id = env_or_fallback('AUTHLETE_V3_SERVICE_APIKEY', 'AUTHLETE_SERVICE_APIKEY')
+    access_token = env_or_fallback('AUTHLETE_V3_SERVICE_ACCESSTOKEN', 'AUTHLETE_SERVICE_ACCESSTOKEN')
 
-    service_id = ENV['AUTHLETE_SERVICE_APIKEY']
-    sdk = Authlete::Client.new(
-      bearer: ENV['AUTHLETE_SERVICE_ACCESSTOKEN'],
-      server_url: ENV['AUTHLETE_BASE_URL']
-    )
+    if [base_url, service_id, access_token].any? { |value| value.to_s.empty? }
+      skip('AUTHLETE_V3_BASE_URL, AUTHLETE_V3_SERVICE_APIKEY and AUTHLETE_V3_SERVICE_ACCESSTOKEN ' \
+           '(or plain AUTHLETE_* V3 credentials) are required')
+    end
+
+    sdk = Authlete::Client.new(bearer: access_token, server_url: base_url)
 
     client_name = "sdk-playground-smoke-#{SecureRandom.alphanumeric(8).downcase}"
     state = SecureRandom.alphanumeric(16)
@@ -123,6 +125,11 @@ class AuthorizationCodeFlowTest < Minitest::Test
   end
 
   private
+
+  def env_or_fallback(primary, fallback)
+    value = ENV[primary].to_s
+    value.empty? ? ENV[fallback].to_s : value
+  end
 
   def query_string(params)
     params.map { |key, value| "#{key}=#{CGI.escape(value)}" }.join('&')

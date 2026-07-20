@@ -10,12 +10,12 @@ class AuthorizationCodeFlowTest < Minitest::Test
   SUBJECT = 'sdk-playground-user'
 
   def test_authorization_code_flow
-    skip_unless_authlete_configured!
+    base_url, api_key, api_secret = resolve_v2_credentials!
 
     api = Authlete::Api.new(
-      host: ENV.fetch('AUTHLETE_BASE_URL', 'https://api.authlete.com'),
-      service_api_key: ENV.fetch('AUTHLETE_SERVICE_APIKEY'),
-      service_api_secret: ENV.fetch('AUTHLETE_SERVICE_APISECRET')
+      host: base_url,
+      service_api_key: api_key,
+      service_api_secret: api_secret
     )
 
     client = nil
@@ -118,17 +118,28 @@ class AuthorizationCodeFlowTest < Minitest::Test
 
   private
 
-  def skip_unless_authlete_configured!
-    base_url = ENV['AUTHLETE_BASE_URL'].to_s.strip
-    api_key = ENV['AUTHLETE_SERVICE_APIKEY'].to_s.strip
-    api_secret = ENV['AUTHLETE_SERVICE_APISECRET'].to_s.strip
-    api_version = ENV['AUTHLETE_API_VERSION'].to_s.strip
+  # Prefer the version-specific AUTHLETE_V2_* variables; fall back to the
+  # plain AUTHLETE_* variables when they hold a V2 configuration.
+  def resolve_v2_credentials!
+    base_url = ENV['AUTHLETE_V2_BASE_URL'].to_s.strip
+    api_key = ENV['AUTHLETE_V2_SERVICE_APIKEY'].to_s.strip
+    api_secret = ENV['AUTHLETE_V2_SERVICE_APISECRET'].to_s.strip
 
-    if base_url.empty? || api_key.empty? || api_secret.empty?
-      skip 'Skipping Authlete smoke test because required environment variables are not set'
+    if base_url.empty? && api_key.empty? && api_secret.empty?
+      api_version = ENV['AUTHLETE_API_VERSION'].to_s.strip
+      skip 'Skipping Authlete smoke test because authlete gem is V2-only' if %w[3 V3].include?(api_version.upcase)
+
+      base_url = ENV['AUTHLETE_BASE_URL'].to_s.strip
+      api_key = ENV['AUTHLETE_SERVICE_APIKEY'].to_s.strip
+      api_secret = ENV['AUTHLETE_SERVICE_APISECRET'].to_s.strip
     end
 
-    skip 'Skipping Authlete smoke test because authlete gem is V2-only' if %w[3 V3].include?(api_version.upcase)
+    if base_url.empty? || api_key.empty? || api_secret.empty?
+      skip 'AUTHLETE_V2_BASE_URL, AUTHLETE_V2_SERVICE_APIKEY and AUTHLETE_V2_SERVICE_APISECRET ' \
+           '(or plain AUTHLETE_* V2 credentials) are required'
+    end
+
+    [base_url, api_key, api_secret]
   end
 
   def random_alnum(length)

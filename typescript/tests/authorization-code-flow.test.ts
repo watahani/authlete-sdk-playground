@@ -17,14 +17,15 @@ import {
   TokenResponseAction,
 } from "@authlete/typescript-sdk/models";
 
-const serviceId = process.env.AUTHLETE_SERVICE_APIKEY;
-const bearer = process.env.AUTHLETE_SERVICE_ACCESSTOKEN;
-const serverURL = process.env.AUTHLETE_BASE_URL;
+// Prefer the version-specific variables; fall back to the plain ones.
+const serviceId = process.env.AUTHLETE_V3_SERVICE_APIKEY || process.env.AUTHLETE_SERVICE_APIKEY;
+const bearer = process.env.AUTHLETE_V3_SERVICE_ACCESSTOKEN || process.env.AUTHLETE_SERVICE_ACCESSTOKEN;
+const serverURL = process.env.AUTHLETE_V3_BASE_URL || process.env.AUTHLETE_BASE_URL;
 
 const missingEnvVars = [
-  ["AUTHLETE_BASE_URL", serverURL],
-  ["AUTHLETE_SERVICE_APIKEY", serviceId],
-  ["AUTHLETE_SERVICE_ACCESSTOKEN", bearer],
+  ["AUTHLETE_V3_BASE_URL", serverURL],
+  ["AUTHLETE_V3_SERVICE_APIKEY", serviceId],
+  ["AUTHLETE_V3_SERVICE_ACCESSTOKEN", bearer],
 ].filter(([, value]) => !value).map(([name]) => name);
 
 function randomSuffix(length = 8): string {
