@@ -161,13 +161,18 @@ never fail on a fresh checkout.
 | TypeScript | `npm test` | V3 only |
 | PHP | `composer test` | V2 only |
 
-The Java smoke tests can cover both V2 and V3 in a single run. Set the
-version-specific variables (`AUTHLETE_V2_BASE_URL`, `AUTHLETE_V2_SERVICE_APIKEY`,
+Every smoke test prefers the version-specific variables
+(`AUTHLETE_V2_BASE_URL`, `AUTHLETE_V2_SERVICE_APIKEY`,
 `AUTHLETE_V2_SERVICE_APISECRET`, `AUTHLETE_V3_BASE_URL`,
-`AUTHLETE_V3_SERVICE_APIKEY`, `AUTHLETE_V3_SERVICE_ACCESSTOKEN`) in
-`.env.local`. When they are not set, the Java tests fall back to the plain
-`AUTHLETE_*` variables and run only the matching API version. A flow whose
+`AUTHLETE_V3_SERVICE_APIKEY`, `AUTHLETE_V3_SERVICE_ACCESSTOKEN`) for the API
+version(s) its SDK supports, so a single `.env.local` can drive all languages
+at once — the Java tests cover both V2 and V3 in one run. When the
+version-specific variables are not set, each test falls back to the plain
+`AUTHLETE_*` variables if they match its API version. A flow whose
 credentials are missing is skipped.
+
+Note: the V3 service access token must have `CREATE_CLIENT` / `DELETE_CLIENT`
+access rights; otherwise client creation fails with `A457101`.
 
 The `Devcontainer smoke test` GitHub Actions workflow
 (`.github/workflows/devcontainer-smoke-test.yml`) builds every language's

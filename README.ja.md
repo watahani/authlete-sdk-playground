@@ -161,13 +161,18 @@ SDKでは以下の環境変数が使用されます：
 | TypeScript | `npm test` | V3 のみ |
 | PHP | `composer test` | V2 のみ |
 
-Java のスモークテストは 1 回の実行で V2 / V3 の両方をテストできます。
-`.env.local` にバージョン別の変数（`AUTHLETE_V2_BASE_URL`、
-`AUTHLETE_V2_SERVICE_APIKEY`、`AUTHLETE_V2_SERVICE_APISECRET`、
-`AUTHLETE_V3_BASE_URL`、`AUTHLETE_V3_SERVICE_APIKEY`、
-`AUTHLETE_V3_SERVICE_ACCESSTOKEN`）を設定してください。未設定の場合は
-既存の `AUTHLETE_*` 変数にフォールバックし、該当する API バージョンのみ
-実行します。資格情報が無い側のフローはスキップされます。
+すべてのスモークテストは、SDK が対応する API バージョンのバージョン別変数
+（`AUTHLETE_V2_BASE_URL`、`AUTHLETE_V2_SERVICE_APIKEY`、
+`AUTHLETE_V2_SERVICE_APISECRET`、`AUTHLETE_V3_BASE_URL`、
+`AUTHLETE_V3_SERVICE_APIKEY`、`AUTHLETE_V3_SERVICE_ACCESSTOKEN`）を優先して
+参照するため、1 つの `.env.local` で全言語をまとめて検証できます（Java は
+1 回の実行で V2 / V3 の両方をテストします）。バージョン別変数が未設定の
+場合は、API バージョンが一致するときに限り既存の `AUTHLETE_*` 変数に
+フォールバックします。資格情報が無いフローはスキップされます。
+
+注意: V3 のサービスアクセストークンには `CREATE_CLIENT` / `DELETE_CLIENT`
+のアクセス権限が必要です。権限が無い場合、クライアント作成が `A457101`
+で失敗します。
 
 GitHub Actions ワークフロー `Devcontainer smoke test`
 （`.github/workflows/devcontainer-smoke-test.yml`）は、言語ディレクトリに
