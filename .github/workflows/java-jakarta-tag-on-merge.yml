@@ -1,11 +1,11 @@
-name: Tag java-jaxrs on merge
+name: Tag java-jakarta on merge
 
 on:
   pull_request:
     types: [closed]
     branches: [main]
     paths:
-      - "java-jaxrs/pom.xml"
+      - "java-jakarta/pom.xml"
 
 permissions: {}
 
@@ -28,7 +28,7 @@ jobs:
           import re
           from pathlib import Path
 
-          pom = Path("java-jaxrs/pom.xml").read_text(encoding="utf-8")
+          pom = Path("java-jakarta/pom.xml").read_text(encoding="utf-8")
           def get(key):
               m = re.search(rf"<{re.escape(key)}>([^<]+)</{re.escape(key)}>", pom)
               if not m:
@@ -36,8 +36,8 @@ jobs:
               return m.group(1).strip()
 
           common = get("authlete.java.common.version")
-          jaxrs = get("authlete.java.jaxrs.version")
-          tag = f"java-v{common}-jaxrs-v{jaxrs}"
+          jakarta = get("authlete.java.jakarta.version")
+          tag = f"java-jakarta-v{common}-jakarta-v{jakarta}"
 
           with open("tag.env", "w", encoding="utf-8") as f:
               f.write(f"TAG_NAME={tag}\n")

@@ -1,0 +1,113 @@
+name: Update Java authlete-java-jaxrs
+
+# The legacy java-jaxrs module can no longer follow java-oauth-server (which has
+# migrated to the Jakarta namespace), so its Authlete versions are tracked
+# directly against Maven Central instead.
+
+on:
+  schedule:
+    - cron: "22 3 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  update:
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9  # v4.8.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Update pom.xml from Maven Central
+        id: update
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import urllib.request
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          ARTIFACTS = {
+              "authlete.java.common.version": "com/authlete/authlete-java-common",
+              "authlete.java.jaxrs.version": "com/authlete/authlete-java-jaxrs",
+          }
+          VERSION_RE = re.compile(r"^[0-9]+\.[0-9]+(\.[0-9]+)*(-[a-zA-Z0-9.]+)?$")
+
+          def latest(path):
+              url = f"https://repo1.maven.org/maven2/{path}/maven-metadata.xml"
+              with urllib.request.urlopen(url) as r:
+                  tree = ET.parse(r)
+              release = tree.findtext("versioning/release") or tree.findtext("versioning/latest")
+              if not release or not VERSION_RE.match(release):
+                  raise SystemExit(f"Invalid version for {path}: {release!r}")
+              return release
+
+          pom_path = Path("java-jaxrs/pom.xml")
+          content = pom_path.read_text(encoding="utf-8")
+
+          changed = []
+          for prop, path in ARTIFACTS.items():
+              new_ver = latest(path)
+              m = re.search(rf"<{re.escape(prop)}>([^<]+)</{re.escape(prop)}>", content)
+              if not m:
+                  raise SystemExit(f"{prop} not found in {pom_path}")
+              cur = m.group(1).strip()
+              if cur != new_ver:
+                  content = re.sub(
+                      rf"(<{re.escape(prop)}>)[^<]+(</{re.escape(prop)}>)",
+                      rf"\g<1>{new_ver}\g<2>",
+                      content,
+                  )
+                  changed.append((prop, cur, new_ver))
+
+          if changed:
+              pom_path.write_text(content, encoding="utf-8")
+
+          common = re.search(r"<authlete\.java\.common\.version>([^<]+)<", content).group(1)
+          jaxrs = re.search(r"<authlete\.java\.jaxrs\.version>([^<]+)<", content).group(1)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+              f.write(f"changed={'true' if changed else 'false'}\n")
+              f.write(f"common={common}\n")
+              f.write(f"jaxrs={jaxrs}\n")
+
+          for prop, before, after in changed:
+              print(f"- {prop}: {before} -> {after}")
+          PY
+
+      - name: Compile java-jaxrs (no tests)
+        if: steps.update.outputs.changed == 'true'
+        run: mvn -f java-jaxrs/pom.xml -DskipTests compile
+
+      - name: Create pull request
+        if: steps.update.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e  # v7.0.8
+        with:
+          commit-message: "chore(java-jaxrs): update Authlete versions (common v${{ steps.update.outputs.common }}, jaxrs v${{ steps.update.outputs.jaxrs }})"
+          title: "chore(java-jaxrs): update Authlete versions (common v${{ steps.update.outputs.common }}, jaxrs v${{ steps.update.outputs.jaxrs }})"
+          body: |
+            This PR updates the legacy `java-jaxrs` module's Authlete versions to
+            the latest releases from Maven Central.
+
+            - [authlete-java-common](https://central.sonatype.com/artifact/com.authlete/authlete-java-common): `${{ steps.update.outputs.common }}`
+            - [authlete-java-jaxrs](https://central.sonatype.com/artifact/com.authlete/authlete-java-jaxrs): `${{ steps.update.outputs.jaxrs }}`
+            - Checks: `mvn -f java-jaxrs/pom.xml -DskipTests compile`
+          branch: "chore/java-jaxrs-update-authlete"
+          delete-branch: true
+          add-paths: |
+            java-jaxrs/pom.xml

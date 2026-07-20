@@ -4,29 +4,26 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.authlete.sdklab</groupId>
-  <artifactId>executor</artifactId>
+  <artifactId>executor-jakarta</artifactId>
   <version>1.0-SNAPSHOT</version>
 
-  <name>executor</name>
+  <name>executor-jakarta</name>
   <!-- FIXME change it to the project's website -->
   <url>http://www.example.com</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-    <authlete.java.common.version>4.45</authlete.java.common.version>
-    <authlete.java.jaxrs.version>2.93</authlete.java.jaxrs.version>
-    <authlete.cbor.version>1.21</authlete.cbor.version>
-    <javax.servlet-api.version>3.0.1</javax.servlet-api.version>
     <!--
-      This module targets the legacy javax.* (JAX-RS 2.x) stack. authlete-java-common's
-      v2 client implementation loads javax.ws.rs.* classes reflectively, so Jersey MUST
-      stay on the 2.x line (which provides javax.ws.rs). Do NOT bump to Jersey 3.x: that
-      line is Jakarta-based (jakarta.ws.rs) and breaks this sample at runtime with
-      NoClassDefFoundError: javax/ws/rs/WebApplicationException. Use the java-jakarta
-      module for the Jakarta stack instead.
+      These property names intentionally match those in the Authlete
+      java-oauth-server pom.xml so that the "Sync java-jakarta Authlete versions"
+      workflow can keep them in step with the upstream reference server.
     -->
-    <jersey.version>2.48</jersey.version>
+    <authlete.java.common.version>4.45</authlete.java.common.version>
+    <authlete.java.jakarta.version>2.96</authlete.java.jakarta.version>
+    <authlete.cbor.version>1.21</authlete.cbor.version>
+    <jakarta.servlet-api.version>6.0.0</jakarta.servlet-api.version>
+    <jersey.version>3.1.11</jersey.version>
     <jetty.version>12.1.10</jetty.version>
     <maven.compiler.plugin.version>3.15.0</maven.compiler.plugin.version>
     <maven.war.plugin.version>3.5.1</maven.war.plugin.version>
@@ -53,8 +50,8 @@
 
     <dependency>
       <groupId>com.authlete</groupId>
-      <artifactId>authlete-java-jaxrs</artifactId>
-      <version>${authlete.java.jaxrs.version}</version>
+      <artifactId>authlete-java-jakarta</artifactId>
+      <version>${authlete.java.jakarta.version}</version>
     </dependency>
 
     <dependency>
@@ -64,9 +61,9 @@
     </dependency>
 
     <dependency>
-      <groupId>javax.servlet</groupId>
-      <artifactId>javax.servlet-api</artifactId>
-      <version>${javax.servlet-api.version}</version>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+      <version>${jakarta.servlet-api.version}</version>
       <scope>provided</scope>
     </dependency>
 
@@ -101,12 +98,6 @@
     </dependency>
 
     <dependency>
-        <groupId>javax.servlet</groupId>
-        <artifactId>jstl</artifactId>
-        <version>1.2</version>
-    </dependency>
-
-    <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcpkix-jdk18on</artifactId>
         <version>1.77</version>
@@ -115,7 +106,6 @@
     <dependency>
       <groupId>com.nimbusds</groupId>
       <artifactId>oauth2-oidc-sdk</artifactId>
-      <classifier>jdk8</classifier>
       <version>9.22</version>
     </dependency>
 
@@ -153,6 +143,12 @@
       <artifactId>gson</artifactId>
       <version>2.10.1</version>
     </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -170,7 +166,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.13.0</version>
+          <version>${maven.compiler.plugin.version}</version>
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
