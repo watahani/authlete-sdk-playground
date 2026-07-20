@@ -1,0 +1,75 @@
+name: Update Go openapi-for-go
+
+on:
+  schedule:
+    - cron: "47 3 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions: {}
+
+env:
+  MODULE: github.com/authlete/openapi-for-go
+
+jobs:
+  update:
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Set up Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5  # v5.5.0
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+
+      - name: Get latest version from the Go module proxy
+        id: latest
+        run: |
+          LATEST=$(curl -sfL "https://proxy.golang.org/${MODULE}/@latest" | python3 -c "import sys,json; print(json.load(sys.stdin)['Version'])")
+          if ! echo "$LATEST" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'; then
+            echo "::error::Invalid version format: $LATEST"
+            exit 1
+          fi
+          echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
+
+      - name: Get current version
+        id: current
+        working-directory: go
+        run: |
+          CURRENT=$(go list -m -f '{{.Version}}' "${MODULE}")
+          echo "version=${CURRENT}" >> "$GITHUB_OUTPUT"
+
+      - name: Update module
+        if: steps.latest.outputs.version != steps.current.outputs.version
+        working-directory: go
+        env:
+          NEW_VERSION: ${{ steps.latest.outputs.version }}
+        run: |
+          go get "${MODULE}@${NEW_VERSION}"
+          go mod tidy
+
+      - name: Create pull request
+        if: steps.latest.outputs.version != steps.current.outputs.version
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e  # v7.0.8
+        with:
+          commit-message: "chore(go): update openapi-for-go to ${{ steps.latest.outputs.version }}"
+          title: "chore(go): update openapi-for-go to ${{ steps.latest.outputs.version }}"
+          body: |
+            This PR updates `github.com/authlete/openapi-for-go` in `go/go.mod` to the latest version from the Go module proxy.
+
+            - Module: [openapi-for-go](https://github.com/authlete/openapi-for-go)
+            - Previous version: `${{ steps.current.outputs.version }}`
+            - New version: `${{ steps.latest.outputs.version }}`
+          branch: "chore/go-update-openapi-for-go"
+          delete-branch: true
+          add-paths: |
+            go/go.mod
+            go/go.sum

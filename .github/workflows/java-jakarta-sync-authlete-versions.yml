@@ -1,8 +1,8 @@
-name: Sync java-jaxrs Authlete versions
+name: Sync java-jakarta Authlete versions
 
 on:
   schedule:
-    - cron: "17 3 * * *"
+    - cron: "12 3 * * *"
   workflow_dispatch: {}
 
 permissions: {}
@@ -17,15 +17,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
-      - name: Set up JDK 8
+      - name: Set up JDK 21
         uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9  # v4.8.0
         with:
           distribution: temurin
-          java-version: "8"
+          java-version: "21"
           cache: maven
 
-      - name: Update java-jaxrs properties from java-oauth-server
-        run: .github/scripts/update_java_jaxrs_versions.py
+      - name: Update java-jakarta properties from java-oauth-server
+        run: .github/scripts/update_java_jakarta_versions.py
 
       - name: Detect changes
         id: changes
@@ -36,9 +36,9 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Compile java-jaxrs (no tests)
+      - name: Compile java-jakarta (no tests)
         if: steps.changes.outputs.changed == 'true'
-        run: mvn -f java-jaxrs/pom.xml -DskipTests compile
+        run: mvn -f java-jakarta/pom.xml -DskipTests compile
 
       - name: Extract Authlete versions
         if: steps.changes.outputs.changed == 'true'
@@ -48,7 +48,7 @@ jobs:
           import re
           from pathlib import Path
 
-          pom = Path("java-jaxrs/pom.xml").read_text(encoding="utf-8")
+          pom = Path("java-jakarta/pom.xml").read_text(encoding="utf-8")
           def get(key):
               m = re.search(rf"<{re.escape(key)}>([^<]+)</{re.escape(key)}>", pom)
               if not m:
@@ -56,11 +56,11 @@ jobs:
               return m.group(1).strip()
 
           common = get("authlete.java.common.version")
-          jaxrs = get("authlete.java.jaxrs.version")
+          jakarta = get("authlete.java.jakarta.version")
 
           with open("versions.env", "w", encoding="utf-8") as f:
               f.write(f"COMMON_VERSION={common}\n")
-              f.write(f"JAXRS_VERSION={jaxrs}\n")
+              f.write(f"JAKARTA_VERSION={jakarta}\n")
           PY
           cat versions.env >> "$GITHUB_OUTPUT"
 
@@ -68,17 +68,17 @@ jobs:
         if: steps.changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676  # v7.0.11
         with:
-          commit-message: "chore(java-jaxrs): sync Authlete versions (common v${{ steps.versions.outputs.COMMON_VERSION }}, jaxrs v${{ steps.versions.outputs.JAXRS_VERSION }})"
-          title: "chore(java-jaxrs): sync Authlete versions (common v${{ steps.versions.outputs.COMMON_VERSION }}, jaxrs v${{ steps.versions.outputs.JAXRS_VERSION }})"
+          commit-message: "chore(java-jakarta): sync Authlete versions (common v${{ steps.versions.outputs.COMMON_VERSION }}, jakarta v${{ steps.versions.outputs.JAKARTA_VERSION }})"
+          title: "chore(java-jakarta): sync Authlete versions (common v${{ steps.versions.outputs.COMMON_VERSION }}, jakarta v${{ steps.versions.outputs.JAKARTA_VERSION }})"
           body: |
-            This PR syncs Authlete-related versions in `java-jaxrs/pom.xml`
+            This PR syncs Authlete-related versions in `java-jakarta/pom.xml`
             with the latest values from the Authlete java-oauth-server `pom.xml`.
 
             - Source: https://github.com/authlete/java-oauth-server/blob/master/pom.xml
-            - Checks: `mvn -f java-jaxrs/pom.xml -DskipTests compile`
+            - Checks: `mvn -f java-jakarta/pom.xml -DskipTests compile`
 
             TODO: add tests and switch to test execution when available.
-          branch: "chore/java-jaxrs-sync-authlete-versions"
+          branch: "chore/java-jakarta-sync-authlete-versions"
           delete-branch: true
           add-paths: |
-            java-jaxrs/pom.xml
+            java-jakarta/pom.xml

@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
+"""Sync Authlete-related versions in java-jakarta/pom.xml.
+
+The Authlete java-oauth-server reference server is Jakarta-based, so the
+java-jakarta module tracks the versions declared in that server's pom.xml.
+Only <properties> whose keys exist in both poms are updated, so unrelated
+local properties are left untouched.
+"""
 import re
 import sys
 import urllib.request
 from pathlib import Path
 
 REMOTE_POM_URL = "https://raw.githubusercontent.com/authlete/java-oauth-server/master/pom.xml"
-LOCAL_POM_PATH = Path("java-jaxrs/pom.xml")
+LOCAL_POM_PATH = Path("java-jakarta/pom.xml")
 
 
 def extract_properties(xml_text: str) -> dict:
