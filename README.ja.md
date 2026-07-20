@@ -174,6 +174,10 @@ SDKでは以下の環境変数が使用されます：
 のアクセス権限が必要です。権限が無い場合、クライアント作成が `A457101`
 で失敗します。
 
+注意: PHP のテストは、サービスが `authlete/authlete` 1.x のパースできない
+grant type（`TOKEN_EXCHANGE`、`JWT_BEARER` など）をサポートしている場合、
+API レスポンスを解釈できないため SKIP を報告します。
+
 GitHub Actions ワークフロー `Devcontainer smoke test`
 （`.github/workflows/devcontainer-smoke-test.yml`）は、言語ディレクトリに
 変更がある Pull Request ごとに各言語の Dev Container（GitHub Codespaces と

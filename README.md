@@ -174,6 +174,11 @@ credentials are missing is skipped.
 Note: the V3 service access token must have `CREATE_CLIENT` / `DELETE_CLIENT`
 access rights; otherwise client creation fails with `A457101`.
 
+Note: the PHP test reports SKIP when the service supports grant types that
+`authlete/authlete` 1.x cannot parse (such as `TOKEN_EXCHANGE` or
+`JWT_BEARER`), because API responses containing them are unparseable with
+that SDK.
+
 The `Devcontainer smoke test` GitHub Actions workflow
 (`.github/workflows/devcontainer-smoke-test.yml`) builds every language's
 Dev Container — the same configuration GitHub Codespaces uses — and runs
