@@ -28,6 +28,7 @@ class AuthorizationCodeFlowTest < Minitest::Test
       client = api.client_create(
         Authlete::Model::Client.new(
           clientName: client_name,
+          developer: 'sdk-playground-developer', # required by the V2 /client/create API
           clientType: 'CONFIDENTIAL',
           grantTypes: ['AUTHORIZATION_CODE'],
           responseTypes: ['CODE'],

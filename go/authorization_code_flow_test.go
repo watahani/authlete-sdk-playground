@@ -15,6 +15,8 @@ import (
 const (
 	testRedirectURI = "https://sdk-playground.example.com/callback"
 	testSubject     = "sdk-playground-user"
+	// The V2 /client/create API requires a developer identifier.
+	testDeveloper = "sdk-playground-developer"
 )
 
 // TestAuthorizationCodeFlow runs a minimal OAuth 2.0 authorization code flow
@@ -54,6 +56,7 @@ func TestAuthorizationCodeFlow(t *testing.T) {
 	clientName := "sdk-playground-smoke-" + randomString(t)
 	newClient := authlete.NewClient()
 	newClient.SetClientName(clientName)
+	newClient.SetDeveloper(testDeveloper)
 	newClient.SetClientType(authlete.CLIENTTYPE_CONFIDENTIAL)
 	newClient.SetGrantTypes([]authlete.GrantType{authlete.GRANTTYPE_AUTHORIZATION_CODE})
 	newClient.SetResponseTypes([]authlete.ResponseType{authlete.RESPONSETYPE_CODE})

@@ -46,6 +46,8 @@ import com.authlete.common.types.ResponseType;
 public class AuthorizationCodeFlowSmokeTest {
     private static final String REDIRECT_URI = "https://sdk-playground.example.com/callback";
     private static final String SUBJECT = "sdk-playground-user";
+    // The V2 /client/create API requires a developer identifier.
+    private static final String DEVELOPER = "sdk-playground-developer";
     private static final SecureRandom RANDOM = new SecureRandom();
 
     @Test
@@ -58,11 +60,18 @@ public class AuthorizationCodeFlowSmokeTest {
                 "Skipping V2 smoke test: AUTHLETE_V2_BASE_URL, AUTHLETE_V2_SERVICE_APIKEY and"
                         + " AUTHLETE_V2_SERVICE_APISECRET (or plain AUTHLETE_* V2 credentials) are not set");
 
+        // The service-owner credentials are set to the service credentials on
+        // purpose: authlete-java-common's HttpURLConnection-based V2
+        // implementation (4.47) sends /api/client/delete with the
+        // service-owner credentials, and the server also accepts the service
+        // credentials there.
         AuthleteApi api = AuthleteApiFactory.create(new AuthleteSimpleConfiguration()
                 .setApiVersion("V2")
                 .setBaseUrl(baseUrl)
                 .setServiceApiKey(apiKey)
-                .setServiceApiSecret(apiSecret));
+                .setServiceApiSecret(apiSecret)
+                .setServiceOwnerApiKey(apiKey)
+                .setServiceOwnerApiSecret(apiSecret));
         assertNotNull(api, "Failed to create an AuthleteApi instance for V2");
 
         runAuthorizationCodeFlow("V2", api);
@@ -99,6 +108,7 @@ public class AuthorizationCodeFlowSmokeTest {
             System.out.println("[smoke:" + label + "] Step 1: Creating a confidential authorization-code client: " + clientName);
             Client clientRequest = new Client()
                     .setClientName(clientName)
+                    .setDeveloper(DEVELOPER)
                     .setClientType(ClientType.CONFIDENTIAL)
                     .setGrantTypes(new GrantType[] { GrantType.AUTHORIZATION_CODE })
                     .setResponseTypes(new ResponseType[] { ResponseType.CODE })
@@ -176,6 +186,7 @@ public class AuthorizationCodeFlowSmokeTest {
                 System.out.println("[smoke:" + label + "] Cleanup: deleting clientId=" + createdClient.getClientId());
                 try {
                     api.deleteClient(createdClient.getClientId());
+                    verifyClientDeleted(api, createdClient.getClientId());
                     System.out.println("[smoke:" + label + "] Cleanup result: client deleted");
                 } catch (RuntimeException e) {
                     if (failure != null) {
@@ -196,6 +207,24 @@ public class AuthorizationCodeFlowSmokeTest {
         if (failure != null) {
             throw new RuntimeException(failure);
         }
+    }
+
+    /**
+     * Ensures that the client has actually been deleted. Some SDK versions
+     * report success from {@code deleteClient} even when the server rejected
+     * the deletion, which would leak clients and eventually exhaust the
+     * service's client quota.
+     */
+    private static void verifyClientDeleted(AuthleteApi api, long clientId) {
+        try {
+            api.getClient(clientId);
+        } catch (RuntimeException e) {
+            // Expected: the client no longer exists.
+            return;
+        }
+
+        throw new IllegalStateException(
+                "Client " + clientId + " still exists after deleteClient()");
     }
 
     /**
