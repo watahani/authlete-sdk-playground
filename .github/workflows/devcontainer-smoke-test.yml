@@ -34,36 +34,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Java SDKs support both Authlete V2 and V3; the JUnit test reads
-          # AUTHLETE_V2_* / AUTHLETE_V3_* and covers both in a single run.
+          # Every test reads the version-specific AUTHLETE_V2_* / AUTHLETE_V3_*
+          # variables for the API versions its SDK supports (Java covers both
+          # in a single run; the others are V2- or V3-only).
           - lang: java
-            api: both
             test_cmd: mvn -B test
           - lang: java-jakarta
-            api: both
             test_cmd: mvn -B test
           - lang: java-jaxrs
-            api: both
             test_cmd: mvn -B test
-          # openapi-for-go supports V2 only.
-          - lang: go
-            api: v2
+          - lang: go # V2 only
             test_cmd: go test -v ./...
-          # authlete_ruby_sdk supports V3 only.
-          - lang: ruby
-            api: v3
+          - lang: ruby # V3 only
             test_cmd: bundle install && bundle exec ruby test/authorization_code_flow_test.rb
-          # authlete gem supports V2 only.
-          - lang: ruby-v2
-            api: v2
+          - lang: ruby-v2 # V2 only
             test_cmd: bundle install && bundle exec ruby test/authorization_code_flow_test.rb
-          # @authlete/typescript-sdk supports V3 only.
-          - lang: typescript
-            api: v3
+          - lang: typescript # V3 only
             test_cmd: npm install && npm test
-          # authlete/authlete (PHP) supports V2 only.
-          - lang: php
-            api: v2
+          - lang: php # V2 only
             test_cmd: composer install --no-interaction --no-progress && composer test
 
     steps:
@@ -72,7 +60,6 @@ jobs:
 
       - name: Create .env.local from secrets
         env:
-          API: ${{ matrix.api }}
           V2_BASE_URL: ${{ secrets.AUTHLETE_V2_BASE_URL }}
           V2_APIKEY: ${{ secrets.AUTHLETE_V2_SERVICE_APIKEY }}
           V2_APISECRET: ${{ secrets.AUTHLETE_V2_SERVICE_APISECRET }}
@@ -80,33 +67,14 @@ jobs:
           V3_APIKEY: ${{ secrets.AUTHLETE_V3_SERVICE_APIKEY }}
           V3_ACCESSTOKEN: ${{ secrets.AUTHLETE_V3_SERVICE_ACCESSTOKEN }}
         run: |
-          case "${API}" in
-            v2)
-              {
-                echo "AUTHLETE_BASE_URL=${V2_BASE_URL}"
-                echo "AUTHLETE_SERVICE_APIKEY=${V2_APIKEY}"
-                echo "AUTHLETE_SERVICE_APISECRET=${V2_APISECRET}"
-              } > .env.local
-              ;;
-            v3)
-              {
-                echo "AUTHLETE_BASE_URL=${V3_BASE_URL}"
-                echo "AUTHLETE_SERVICE_APIKEY=${V3_APIKEY}"
-                echo "AUTHLETE_SERVICE_ACCESSTOKEN=${V3_ACCESSTOKEN}"
-                echo "AUTHLETE_API_VERSION=3"
-              } > .env.local
-              ;;
-            both)
-              {
-                echo "AUTHLETE_V2_BASE_URL=${V2_BASE_URL}"
-                echo "AUTHLETE_V2_SERVICE_APIKEY=${V2_APIKEY}"
-                echo "AUTHLETE_V2_SERVICE_APISECRET=${V2_APISECRET}"
-                echo "AUTHLETE_V3_BASE_URL=${V3_BASE_URL}"
-                echo "AUTHLETE_V3_SERVICE_APIKEY=${V3_APIKEY}"
-                echo "AUTHLETE_V3_SERVICE_ACCESSTOKEN=${V3_ACCESSTOKEN}"
-              } > .env.local
-              ;;
-          esac
+          {
+            echo "AUTHLETE_V2_BASE_URL=${V2_BASE_URL}"
+            echo "AUTHLETE_V2_SERVICE_APIKEY=${V2_APIKEY}"
+            echo "AUTHLETE_V2_SERVICE_APISECRET=${V2_APISECRET}"
+            echo "AUTHLETE_V3_BASE_URL=${V3_BASE_URL}"
+            echo "AUTHLETE_V3_SERVICE_APIKEY=${V3_APIKEY}"
+            echo "AUTHLETE_V3_SERVICE_ACCESSTOKEN=${V3_ACCESSTOKEN}"
+          } > .env.local
 
       - name: Build devcontainer and run smoke test
         uses: devcontainers/ci@v0.3
