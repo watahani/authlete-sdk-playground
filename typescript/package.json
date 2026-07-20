@@ -4,10 +4,13 @@
   "description": "Sample console app that exercises the Authlete TypeScript SDK inside a Dev Container.",
   "main": "dist/main.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
     "dev": "ts-node --transpile-only src/main.ts",
-    "start": "node dist/main.js"
+    "start": "node dist/main.js",
+    "test": "node --require ts-node/register tests/authorization-code-flow.test.ts",
+    "typecheck": "tsc --noEmit",
+    "typecheck:build": "tsc -p tsconfig.build.json --noEmit"
   },
   "keywords": [
     "authlete",

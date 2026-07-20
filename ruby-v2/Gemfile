@@ -4,4 +4,5 @@ source 'https://rubygems.org'
 ruby '>= 3.4'
 
 gem 'authlete'
+gem 'minitest', '~> 5.25'  # 6.x depends on prism, which needs a compiler missing from this image
 gem 'rack'  # authlete/api.rb requires rack, but authlete.gemspec doesn't declare it
