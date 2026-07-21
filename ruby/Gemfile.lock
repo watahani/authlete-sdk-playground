@@ -8,6 +8,7 @@ GEM
       faraday-retry (~> 2.4.0)
       sorbet-runtime (~> 0.6.12872)
     base64 (0.3.0)
+    drb (2.2.3)
     faraday (2.14.1)
       faraday-net_http (>= 2.0, < 3.5)
       json
@@ -20,9 +21,13 @@ GEM
       faraday (~> 2.0)
     json (2.19.3)
     logger (1.7.0)
+    minitest (6.0.6)
+      drb (~> 2.0)
+      prism (~> 1.5)
     multipart-post (2.4.1)
     net-http (0.9.1)
       uri (>= 0.11.1)
+    prism (1.9.0)
     sorbet-runtime (0.6.13133)
     uri (1.1.1)
 
@@ -32,6 +37,7 @@ PLATFORMS
 
 DEPENDENCIES
   authlete_ruby_sdk (= 1.0.0)
+  minitest
 
 RUBY VERSION
    ruby 3.4.8p72

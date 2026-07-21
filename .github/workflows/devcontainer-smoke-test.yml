@@ -1,0 +1,84 @@
+# Builds each language's Dev Container (the same path GitHub Codespaces uses)
+# and runs an OAuth 2.0 authorization code flow smoke test inside it.
+#
+# Required repository secrets (tests are skipped gracefully when missing,
+# so the workflow still verifies that the containers build and compile):
+#   AUTHLETE_V2_BASE_URL / AUTHLETE_V2_SERVICE_APIKEY / AUTHLETE_V2_SERVICE_APISECRET
+#   AUTHLETE_V3_BASE_URL / AUTHLETE_V3_SERVICE_APIKEY / AUTHLETE_V3_SERVICE_ACCESSTOKEN
+name: Devcontainer smoke test
+
+on:
+  pull_request:
+    paths:
+      - '.devcontainer/**'
+      - '.github/workflows/devcontainer-smoke-test.yml'
+      - 'java/**'
+      - 'java-jakarta/**'
+      - 'java-jaxrs/**'
+      - 'go/**'
+      - 'ruby/**'
+      - 'ruby-v2/**'
+      - 'typescript/**'
+      - 'php/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Every test reads the version-specific AUTHLETE_V2_* / AUTHLETE_V3_*
+          # variables for the API versions its SDK supports (Java covers both
+          # in a single run; the others are V2- or V3-only).
+          - lang: java
+            test_cmd: mvn -B test
+          - lang: java-jakarta
+            test_cmd: mvn -B test
+          - lang: java-jaxrs
+            test_cmd: mvn -B test
+          - lang: go # V2 only
+            test_cmd: go test -v ./...
+          - lang: ruby # V3 only
+            test_cmd: bundle install && bundle exec ruby test/authorization_code_flow_test.rb
+          - lang: ruby-v2 # V2 only
+            test_cmd: bundle install && bundle exec ruby test/authorization_code_flow_test.rb
+          - lang: typescript # V3 only
+            test_cmd: npm install && npm test
+          - lang: php # V2 only
+            test_cmd: composer install --no-interaction --no-progress && composer test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create .env.local from secrets
+        env:
+          V2_BASE_URL: ${{ secrets.AUTHLETE_V2_BASE_URL }}
+          V2_APIKEY: ${{ secrets.AUTHLETE_V2_SERVICE_APIKEY }}
+          V2_APISECRET: ${{ secrets.AUTHLETE_V2_SERVICE_APISECRET }}
+          V3_BASE_URL: ${{ secrets.AUTHLETE_V3_BASE_URL }}
+          V3_APIKEY: ${{ secrets.AUTHLETE_V3_SERVICE_APIKEY }}
+          V3_ACCESSTOKEN: ${{ secrets.AUTHLETE_V3_SERVICE_ACCESSTOKEN }}
+        run: |
+          {
+            echo "AUTHLETE_V2_BASE_URL=${V2_BASE_URL}"
+            echo "AUTHLETE_V2_SERVICE_APIKEY=${V2_APIKEY}"
+            echo "AUTHLETE_V2_SERVICE_APISECRET=${V2_APISECRET}"
+            echo "AUTHLETE_V3_BASE_URL=${V3_BASE_URL}"
+            echo "AUTHLETE_V3_SERVICE_APIKEY=${V3_APIKEY}"
+            echo "AUTHLETE_V3_SERVICE_ACCESSTOKEN=${V3_ACCESSTOKEN}"
+          } > .env.local
+
+      - name: Build devcontainer and run smoke test
+        uses: devcontainers/ci@v0.3
+        with:
+          configFile: .devcontainer/${{ matrix.lang }}/devcontainer.json
+          push: never
+          runCmd: ${{ matrix.test_cmd }}

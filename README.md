@@ -136,6 +136,60 @@ For SDKs that do not have such functionality, the client is instantiated by expl
 - AUTHLETE_SERVICE_ACCESSTOKEN
 - AUTHLETE_API_VERSION
 
+## Smoke Tests
+
+Each language directory contains a smoke test that runs a minimal OAuth 2.0
+authorization code flow against a real Authlete server:
+
+1. Create a disposable client via the client management API
+2. `/auth/authorization` (`response_type=code`)
+3. `/auth/authorization/issue`
+4. `/auth/token` (exchange the authorization code for an access token)
+5. `/auth/introspection` (verify the issued access token)
+6. Delete the disposable client (always, even on failure)
+
+The tests read the same `AUTHLETE_*` environment variables as the sample
+applications and are skipped when credentials are not configured, so they
+never fail on a fresh checkout.
+
+Transient errors (HTTP 429 and 5xx) are retried with exponential backoff
+and jitter, honoring the `Ratelimit-Reset` header where the SDK exposes
+response headers, following the
+[rate limit best practices](https://www.authlete.com/kb/deployment/performance/ratelimit-best-practices/).
+
+| Language | Command (inside the Dev Container) | API version |
+|----------|-------------------------------------|-------------|
+| Java / Java Jakarta / Java JAX-RS | `mvn test` | V2 and V3 |
+| Go | `go test ./...` | V2 only |
+| Ruby (v3) | `bundle exec ruby test/authorization_code_flow_test.rb` | V3 only |
+| Ruby (v2) | `bundle exec ruby test/authorization_code_flow_test.rb` | V2 only |
+| TypeScript | `npm test` | V3 only |
+| PHP | `composer test` | V2 only |
+
+Every smoke test prefers the version-specific variables
+(`AUTHLETE_V2_BASE_URL`, `AUTHLETE_V2_SERVICE_APIKEY`,
+`AUTHLETE_V2_SERVICE_APISECRET`, `AUTHLETE_V3_BASE_URL`,
+`AUTHLETE_V3_SERVICE_APIKEY`, `AUTHLETE_V3_SERVICE_ACCESSTOKEN`) for the API
+version(s) its SDK supports, so a single `.env.local` can drive all languages
+at once — the Java tests cover both V2 and V3 in one run. When the
+version-specific variables are not set, each test falls back to the plain
+`AUTHLETE_*` variables if they match its API version. A flow whose
+credentials are missing is skipped.
+
+Note: the V3 service access token must have `CREATE_CLIENT` / `DELETE_CLIENT`
+access rights; otherwise client creation fails with `A457101`.
+
+Note: the PHP test reports SKIP when the service supports grant types that
+`authlete/authlete` 1.x cannot parse (such as `TOKEN_EXCHANGE` or
+`JWT_BEARER`), because API responses containing them are unparseable with
+that SDK.
+
+The `Devcontainer smoke test` GitHub Actions workflow
+(`.github/workflows/devcontainer-smoke-test.yml`) builds every language's
+Dev Container — the same configuration GitHub Codespaces uses — and runs
+these tests inside it on every pull request that touches a language
+directory, so SDK update PRs are verified automatically.
+
 ## Customizing the Environment
 
 Each language environment can be customized by modifying the corresponding files:

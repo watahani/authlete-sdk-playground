@@ -136,6 +136,59 @@ SDKでは以下の環境変数が使用されます：
 - AUTHLETE_SERVICE_ACCESSTOKEN
 - AUTHLETE_API_VERSION
 
+## スモークテスト
+
+各言語のディレクトリには、実際の Authlete サーバーに対して OAuth 2.0
+認可コードフローを一通り実行するスモークテストが含まれています：
+
+1. クライアント管理 API でテスト用クライアントを作成
+2. `/auth/authorization`（`response_type=code`）
+3. `/auth/authorization/issue`
+4. `/auth/token`（認可コードをアクセストークンに交換）
+5. `/auth/introspection`（発行されたアクセストークンを検証）
+6. テスト用クライアントを削除（失敗時も必ず実行）
+
+テストはサンプルアプリケーションと同じ `AUTHLETE_*` 環境変数を参照し、
+資格情報が設定されていない場合はスキップされるため、チェックアウト直後でも
+失敗しません。
+
+一時的なエラー（HTTP 429 および 5xx）は
+[レートリミットのベストプラクティス](https://www.authlete.com/ja/kb/deployment/performance/ratelimit-best-practices/)
+に従い、指数バックオフ + ジッターでリトライします（SDK がレスポンスヘッダーを
+公開している場合は `Ratelimit-Reset` ヘッダーを優先します）。
+
+| 言語 | コマンド（Dev Container 内で実行） | API バージョン |
+|------|-------------------------------------|----------------|
+| Java / Java Jakarta / Java JAX-RS | `mvn test` | V2 と V3 |
+| Go | `go test ./...` | V2 のみ |
+| Ruby (v3) | `bundle exec ruby test/authorization_code_flow_test.rb` | V3 のみ |
+| Ruby (v2) | `bundle exec ruby test/authorization_code_flow_test.rb` | V2 のみ |
+| TypeScript | `npm test` | V3 のみ |
+| PHP | `composer test` | V2 のみ |
+
+すべてのスモークテストは、SDK が対応する API バージョンのバージョン別変数
+（`AUTHLETE_V2_BASE_URL`、`AUTHLETE_V2_SERVICE_APIKEY`、
+`AUTHLETE_V2_SERVICE_APISECRET`、`AUTHLETE_V3_BASE_URL`、
+`AUTHLETE_V3_SERVICE_APIKEY`、`AUTHLETE_V3_SERVICE_ACCESSTOKEN`）を優先して
+参照するため、1 つの `.env.local` で全言語をまとめて検証できます（Java は
+1 回の実行で V2 / V3 の両方をテストします）。バージョン別変数が未設定の
+場合は、API バージョンが一致するときに限り既存の `AUTHLETE_*` 変数に
+フォールバックします。資格情報が無いフローはスキップされます。
+
+注意: V3 のサービスアクセストークンには `CREATE_CLIENT` / `DELETE_CLIENT`
+のアクセス権限が必要です。権限が無い場合、クライアント作成が `A457101`
+で失敗します。
+
+注意: PHP のテストは、サービスが `authlete/authlete` 1.x のパースできない
+grant type（`TOKEN_EXCHANGE`、`JWT_BEARER` など）をサポートしている場合、
+API レスポンスを解釈できないため SKIP を報告します。
+
+GitHub Actions ワークフロー `Devcontainer smoke test`
+（`.github/workflows/devcontainer-smoke-test.yml`）は、言語ディレクトリに
+変更がある Pull Request ごとに各言語の Dev Container（GitHub Codespaces と
+同じ構成）をビルドし、コンテナ内でこれらのテストを実行します。これにより
+SDK 自動更新 PR も自動的に検証されます。
+
 ## 環境のカスタマイズ
 
 各言語環境は、対応するファイルを変更することでカスタマイズできます：

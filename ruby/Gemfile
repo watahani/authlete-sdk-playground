@@ -4,3 +4,4 @@ source 'https://rubygems.org'
 ruby '>= 3.4'
 
 gem 'authlete_ruby_sdk', '1.0.0'
+gem 'minitest'  # for test/authorization_code_flow_test.rb (bundled gem since Ruby 3.1)

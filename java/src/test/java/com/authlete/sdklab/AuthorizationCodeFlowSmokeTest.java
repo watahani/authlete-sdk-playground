@@ -1,0 +1,386 @@
+package com.authlete.sdklab;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.Test;
+
+import com.authlete.common.api.AuthleteApi;
+import com.authlete.common.api.AuthleteApiException;
+import com.authlete.common.api.AuthleteApiFactory;
+import com.authlete.common.conf.AuthleteSimpleConfiguration;
+import com.authlete.common.dto.AuthorizationIssueRequest;
+import com.authlete.common.dto.AuthorizationIssueResponse;
+import com.authlete.common.dto.AuthorizationRequest;
+import com.authlete.common.dto.AuthorizationResponse;
+import com.authlete.common.dto.Client;
+import com.authlete.common.dto.IntrospectionRequest;
+import com.authlete.common.dto.IntrospectionResponse;
+import com.authlete.common.dto.TokenRequest;
+import com.authlete.common.dto.TokenResponse;
+import com.authlete.common.types.ClientType;
+import com.authlete.common.types.GrantType;
+import com.authlete.common.types.ResponseType;
+
+/**
+ * Smoke test that runs a minimal OAuth 2.0 authorization code flow:
+ * create client -> /auth/authorization -> /auth/authorization/issue ->
+ * /auth/token -> /auth/introspection -> delete client.
+ *
+ * The V2 flow uses AUTHLETE_V2_BASE_URL / AUTHLETE_V2_SERVICE_APIKEY /
+ * AUTHLETE_V2_SERVICE_APISECRET, and the V3 flow uses AUTHLETE_V3_BASE_URL /
+ * AUTHLETE_V3_SERVICE_APIKEY / AUTHLETE_V3_SERVICE_ACCESSTOKEN. When the
+ * version-specific variables are not set, each flow falls back to the plain
+ * AUTHLETE_* variables if AUTHLETE_API_VERSION matches. A flow whose
+ * credentials are missing is skipped.
+ */
+public class AuthorizationCodeFlowSmokeTest {
+    private static final String REDIRECT_URI = "https://sdk-playground.example.com/callback";
+    private static final String SUBJECT = "sdk-playground-user";
+    // The V2 /client/create API requires a developer identifier.
+    private static final String DEVELOPER = "sdk-playground-developer";
+    // Transient errors (429 and 5xx) are retried with exponential backoff.
+    private static final int MAX_RETRIES = 3;
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    @Test
+    void authorizationCodeFlowV2() {
+        String baseUrl = envOrFallback("AUTHLETE_V2_BASE_URL", "AUTHLETE_BASE_URL", !isV3Env());
+        String apiKey = envOrFallback("AUTHLETE_V2_SERVICE_APIKEY", "AUTHLETE_SERVICE_APIKEY", !isV3Env());
+        String apiSecret = envOrFallback("AUTHLETE_V2_SERVICE_APISECRET", "AUTHLETE_SERVICE_APISECRET", !isV3Env());
+
+        Assumptions.assumeTrue(!baseUrl.isBlank() && !apiKey.isBlank() && !apiSecret.isBlank(),
+                "Skipping V2 smoke test: AUTHLETE_V2_BASE_URL, AUTHLETE_V2_SERVICE_APIKEY and"
+                        + " AUTHLETE_V2_SERVICE_APISECRET (or plain AUTHLETE_* V2 credentials) are not set");
+
+        // The service-owner credentials are set to the service credentials on
+        // purpose: authlete-java-common's HttpURLConnection-based V2
+        // implementation (4.47) sends /api/client/delete with the
+        // service-owner credentials, and the server also accepts the service
+        // credentials there.
+        AuthleteApi api = AuthleteApiFactory.create(new AuthleteSimpleConfiguration()
+                .setApiVersion("V2")
+                .setBaseUrl(baseUrl)
+                .setServiceApiKey(apiKey)
+                .setServiceApiSecret(apiSecret)
+                .setServiceOwnerApiKey(apiKey)
+                .setServiceOwnerApiSecret(apiSecret));
+        assertNotNull(api, "Failed to create an AuthleteApi instance for V2");
+
+        runAuthorizationCodeFlow("V2", api);
+    }
+
+    @Test
+    void authorizationCodeFlowV3() {
+        String baseUrl = envOrFallback("AUTHLETE_V3_BASE_URL", "AUTHLETE_BASE_URL", isV3Env());
+        String apiKey = envOrFallback("AUTHLETE_V3_SERVICE_APIKEY", "AUTHLETE_SERVICE_APIKEY", isV3Env());
+        String accessToken = envOrFallback("AUTHLETE_V3_SERVICE_ACCESSTOKEN", "AUTHLETE_SERVICE_ACCESSTOKEN", isV3Env());
+
+        Assumptions.assumeTrue(!baseUrl.isBlank() && !apiKey.isBlank() && !accessToken.isBlank(),
+                "Skipping V3 smoke test: AUTHLETE_V3_BASE_URL, AUTHLETE_V3_SERVICE_APIKEY and"
+                        + " AUTHLETE_V3_SERVICE_ACCESSTOKEN (or plain AUTHLETE_* V3 credentials) are not set");
+
+        AuthleteApi api = AuthleteApiFactory.create(new AuthleteSimpleConfiguration()
+                .setApiVersion("V3")
+                .setBaseUrl(baseUrl)
+                .setServiceApiKey(apiKey)
+                .setServiceAccessToken(accessToken));
+        assertNotNull(api, "Failed to create an AuthleteApi instance for V3");
+
+        runAuthorizationCodeFlow("V3", api);
+    }
+
+    private static void runAuthorizationCodeFlow(String label, AuthleteApi api) {
+        Client createdClient = null;
+        Throwable failure = null;
+
+        try {
+            String clientName = "sdk-playground-smoke-" + randomAlnum(12);
+            String state = randomAlnum(24);
+
+            System.out.println("[smoke:" + label + "] Step 1: Creating a confidential authorization-code client: " + clientName);
+            Client clientRequest = new Client()
+                    .setClientName(clientName)
+                    .setDeveloper(DEVELOPER)
+                    .setClientType(ClientType.CONFIDENTIAL)
+                    .setGrantTypes(new GrantType[] { GrantType.AUTHORIZATION_CODE })
+                    .setResponseTypes(new ResponseType[] { ResponseType.CODE })
+                    .setRedirectUris(new String[] { REDIRECT_URI });
+            createdClient = callWithRetry(label, "/client/create", () -> api.createClient(clientRequest));
+            assertNotNull(createdClient, "Created client must not be null");
+            assertTrue(createdClient.getClientId() > 0, "Created client ID must be positive");
+            assertNotNull(createdClient.getClientSecret(), "Created client secret must not be null");
+            assertFalse(createdClient.getClientSecret().isBlank(), "Created client secret must not be blank");
+            System.out.println("[smoke:" + label + "] Step 1 result: clientId=" + createdClient.getClientId());
+
+            System.out.println("[smoke:" + label + "] Step 2: Calling /auth/authorization");
+            String authorizationParameters = "response_type=code"
+                    + "&client_id=" + createdClient.getClientId()
+                    + "&redirect_uri=" + encode(REDIRECT_URI)
+                    + "&state=" + encode(state);
+            AuthorizationRequest authorizationRequest = new AuthorizationRequest()
+                    .setParameters(authorizationParameters);
+            AuthorizationResponse authorizationResponse =
+                    callWithRetry(label, "/auth/authorization", () -> api.authorization(authorizationRequest));
+            assertEquals(AuthorizationResponse.Action.INTERACTION, authorizationResponse.getAction(),
+                    "Authorization action must be INTERACTION");
+            assertNotNull(authorizationResponse.getTicket(), "Authorization ticket must not be null");
+            System.out.println("[smoke:" + label + "] Step 2 result: action=" + authorizationResponse.getAction());
+
+            System.out.println("[smoke:" + label + "] Step 3: Issuing authorization response");
+            AuthorizationIssueRequest issueRequest = new AuthorizationIssueRequest()
+                    .setTicket(authorizationResponse.getTicket())
+                    .setSubject(SUBJECT);
+            AuthorizationIssueResponse issueResponse =
+                    callWithRetry(label, "/auth/authorization/issue", () -> api.authorizationIssue(issueRequest));
+            assertEquals(AuthorizationIssueResponse.Action.LOCATION, issueResponse.getAction(),
+                    "Authorization issue action must be LOCATION");
+            assertNotNull(issueResponse.getResponseContent(), "Authorization issue response content must not be null");
+            assertTrue(issueResponse.getResponseContent().contains("code="),
+                    "Redirect URL must contain an authorization code");
+            assertTrue(issueResponse.getResponseContent().contains("state=" + state),
+                    "Redirect URL must contain the original state");
+            System.out.println("[smoke:" + label + "] Step 3 result: action=" + issueResponse.getAction());
+
+            String authorizationCode = extractQueryParameter(issueResponse.getResponseContent(), "code");
+            assertNotNull(authorizationCode, "Authorization code must be present in the redirect URL");
+            assertFalse(authorizationCode.isBlank(), "Authorization code must not be blank");
+
+            System.out.println("[smoke:" + label + "] Step 4: Exchanging authorization code for tokens");
+            String tokenParameters = "grant_type=authorization_code"
+                    + "&code=" + encode(authorizationCode)
+                    + "&redirect_uri=" + encode(REDIRECT_URI);
+            TokenRequest tokenRequest = new TokenRequest()
+                    .setParameters(tokenParameters)
+                    .setClientId(String.valueOf(createdClient.getClientId()))
+                    .setClientSecret(createdClient.getClientSecret());
+            TokenResponse tokenResponse = callWithRetry(label, "/auth/token", () -> api.token(tokenRequest));
+            assertEquals(TokenResponse.Action.OK, tokenResponse.getAction(), "Token action must be OK");
+            assertNotNull(tokenResponse.getAccessToken(), "Access token must not be null");
+            assertFalse(tokenResponse.getAccessToken().isBlank(), "Access token must not be blank");
+            System.out.println("[smoke:" + label + "] Step 4 result: action=" + tokenResponse.getAction());
+
+            System.out.println("[smoke:" + label + "] Step 5: Introspecting the access token");
+            IntrospectionRequest introspectionRequest = new IntrospectionRequest()
+                    .setToken(tokenResponse.getAccessToken());
+            IntrospectionResponse introspectionResponse =
+                    callWithRetry(label, "/auth/introspection", () -> api.introspection(introspectionRequest));
+            assertEquals(IntrospectionResponse.Action.OK, introspectionResponse.getAction(),
+                    "Introspection action must be OK");
+            assertTrue(introspectionResponse.isUsable(), "Introspected access token must be usable");
+            assertEquals(SUBJECT, introspectionResponse.getSubject(),
+                    "Introspected access token must be bound to the test subject");
+            System.out.println("[smoke:" + label + "] Step 5 result: action=" + introspectionResponse.getAction()
+                    + ", subject=" + introspectionResponse.getSubject());
+        } catch (Throwable t) {
+            failure = t;
+        } finally {
+            // Delete the client without masking the original failure. A cleanup
+            // failure is reported as suppressed (or as the failure itself when
+            // the flow succeeded).
+            if (createdClient != null && createdClient.getClientId() > 0) {
+                System.out.println("[smoke:" + label + "] Cleanup: deleting clientId=" + createdClient.getClientId());
+                try {
+                    long clientId = createdClient.getClientId();
+                    callWithRetry(label, "/client/delete", () -> {
+                        api.deleteClient(clientId);
+                        return null;
+                    });
+                    verifyClientDeleted(label, api, clientId);
+                    System.out.println("[smoke:" + label + "] Cleanup result: client deleted");
+                } catch (RuntimeException e) {
+                    if (failure != null) {
+                        failure.addSuppressed(e);
+                    } else {
+                        failure = e;
+                    }
+                }
+            }
+        }
+
+        if (failure instanceof RuntimeException) {
+            throw (RuntimeException) failure;
+        }
+        if (failure instanceof Error) {
+            throw (Error) failure;
+        }
+        if (failure != null) {
+            throw new RuntimeException(failure);
+        }
+    }
+
+    /**
+     * Ensures that the client has actually been deleted. Some SDK versions
+     * report success from {@code deleteClient} even when the server rejected
+     * the deletion, which would leak clients and eventually exhaust the
+     * service's client quota.
+     */
+    private static void verifyClientDeleted(String label, AuthleteApi api, long clientId) {
+        try {
+            callWithRetry(label, "/client/get (verify deletion)", () -> api.getClient(clientId));
+        } catch (AuthleteApiException e) {
+            if (isRetryableStatus(e.getStatusCode())) {
+                throw new IllegalStateException(
+                        "Could not verify the deletion of client " + clientId, e);
+            }
+            // Expected: the client no longer exists.
+            return;
+        } catch (RuntimeException e) {
+            // Expected: the client no longer exists.
+            return;
+        }
+
+        throw new IllegalStateException(
+                "Client " + clientId + " still exists after deleteClient()");
+    }
+
+    @FunctionalInterface
+    private interface ApiCall<T> {
+        T call();
+    }
+
+    /**
+     * Executes an Authlete API call, retrying transient errors (429 and 5xx)
+     * following https://www.authlete.com/kb/deployment/performance/ratelimit-best-practices/:
+     * honor the Ratelimit-Reset header when present, otherwise use exponential
+     * backoff (500 ms, 1 s, 2 s) with a small random jitter.
+     */
+    private static <T> T callWithRetry(String label, String api, ApiCall<T> call) {
+        for (int attempt = 0; ; attempt++) {
+            try {
+                return call.call();
+            } catch (AuthleteApiException e) {
+                if (attempt >= MAX_RETRIES || !isRetryableStatus(e.getStatusCode())) {
+                    throw e;
+                }
+
+                long delayMillis = retryDelayMillis(attempt, e.getResponseHeaders());
+                System.out.println("[smoke:" + label + "] " + api + " failed with HTTP " + e.getStatusCode()
+                        + "; retrying in " + delayMillis + " ms (attempt " + (attempt + 1) + "/" + MAX_RETRIES + ")");
+                sleep(delayMillis);
+            }
+        }
+    }
+
+    private static boolean isRetryableStatus(int statusCode) {
+        return statusCode == 429 || statusCode >= 500;
+    }
+
+    private static long retryDelayMillis(int attempt, Map<String, List<String>> headers) {
+        long resetSeconds = ratelimitResetSeconds(headers);
+
+        if (resetSeconds > 0) {
+            return Math.min(resetSeconds, 30) * 1000L;
+        }
+
+        return (500L << attempt) + RANDOM.nextInt(250);
+    }
+
+    private static long ratelimitResetSeconds(Map<String, List<String>> headers) {
+        if (headers == null) {
+            return 0;
+        }
+
+        for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
+            if (entry.getKey() == null || !entry.getKey().equalsIgnoreCase("Ratelimit-Reset")
+                    || entry.getValue() == null || entry.getValue().isEmpty()) {
+                continue;
+            }
+
+            try {
+                return Long.parseLong(entry.getValue().get(0).trim());
+            } catch (NumberFormatException e) {
+                return 0;
+            }
+        }
+
+        return 0;
+    }
+
+    private static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting to retry", e);
+        }
+    }
+
+    /**
+     * Returns the value of {@code primaryName}. When it is not set and
+     * {@code fallbackAllowed} is true, returns the value of
+     * {@code fallbackName} instead.
+     */
+    private static String envOrFallback(String primaryName, String fallbackName, boolean fallbackAllowed) {
+        String primary = env(primaryName);
+
+        if (!primary.isBlank() || !fallbackAllowed) {
+            return primary;
+        }
+
+        return env(fallbackName);
+    }
+
+    private static boolean isV3Env() {
+        String version = env("AUTHLETE_API_VERSION");
+        return version.equalsIgnoreCase("3") || version.equalsIgnoreCase("V3");
+    }
+
+    private static String env(String name) {
+        String value = System.getenv(name);
+        return value == null ? "" : value.trim();
+    }
+
+    private static String randomAlnum(int length) {
+        final String alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+        StringBuilder builder = new StringBuilder(length);
+
+        for (int i = 0; i < length; i++) {
+            builder.append(alphabet.charAt(RANDOM.nextInt(alphabet.length())));
+        }
+
+        return builder.toString();
+    }
+
+    private static String encode(String value) {
+        return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private static String extractQueryParameter(String url, String name) {
+        URI uri = URI.create(url);
+        Map<String, String> queryParameters = parseQuery(uri.getRawQuery());
+        return queryParameters.get(name);
+    }
+
+    private static Map<String, String> parseQuery(String query) {
+        Map<String, String> parameters = new LinkedHashMap<>();
+
+        if (query == null || query.isBlank()) {
+            return parameters;
+        }
+
+        for (String pair : query.split("&")) {
+            String[] elements = pair.split("=", 2);
+            String key = decode(elements[0]);
+            String value = elements.length > 1 ? decode(elements[1]) : "";
+            parameters.put(key, value);
+        }
+
+        return parameters;
+    }
+
+    private static String decode(String value) {
+        return URLDecoder.decode(value, StandardCharsets.UTF_8);
+    }
+}

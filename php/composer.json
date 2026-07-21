@@ -11,6 +11,9 @@
       "Authlete\\SdkLab\\": "src/"
     }
   },
+  "scripts": {
+    "test": "php tests/authorization_code_flow_test.php"
+  },
   "config": {
     "sort-packages": true
   }

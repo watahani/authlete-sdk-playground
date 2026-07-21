@@ -30,4 +30,5 @@ COPY --chown=${USERNAME}:${USER_GID} go.mod go.sum ./
 RUN go mod download
 
 # install dlv for debugging
-RUN go install github.com/go-delve/delve/cmd/dlv@latest
+# (pinned: delve >= 1.27 requires go >= 1.25, newer than the base image toolchain)
+RUN go install github.com/go-delve/delve/cmd/dlv@v1.25.2
