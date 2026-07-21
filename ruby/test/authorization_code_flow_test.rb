@@ -13,6 +13,8 @@ class AuthorizationCodeFlowTest < Minitest::Test
 
   REDIRECT_URI = 'https://sdk-playground.example.com/callback'
   SUBJECT = 'sdk-playground-user'
+  # Transient errors (429 and 5xx) are retried with exponential backoff.
+  MAX_RETRIES = 3
 
   def test_authorization_code_flow
     # Prefer the version-specific variables; fall back to the plain ones.
@@ -33,46 +35,52 @@ class AuthorizationCodeFlowTest < Minitest::Test
 
     begin
       puts "[1/6] Creating test client: #{client_name}"
-      created = sdk.clients.create(
-        service_id: service_id,
-        client: Components::ClientInput.new(
-          client_name: client_name,
-          client_type: Components::ClientType::CONFIDENTIAL,
-          grant_types: [Components::GrantType::AUTHORIZATION_CODE],
-          response_types: [Components::ResponseType::CODE],
-          redirect_uris: [REDIRECT_URI]
+      created = call_with_retry('/client/create') do
+        sdk.clients.create(
+          service_id: service_id,
+          client: Components::ClientInput.new(
+            client_name: client_name,
+            client_type: Components::ClientType::CONFIDENTIAL,
+            grant_types: [Components::GrantType::AUTHORIZATION_CODE],
+            response_types: [Components::ResponseType::CODE],
+            redirect_uris: [REDIRECT_URI]
+          )
         )
-      ).client
+      end.client
       refute_nil created, '/client/create returned no client'
       refute_nil created.client_id, 'created client has no client_id'
       refute_nil created.client_secret, 'created client has no client_secret'
       puts "      client_id=#{created.client_id}"
 
       puts '[2/6] Calling /auth/authorization'
-      authz = sdk.authorization.process_request(
-        service_id: service_id,
-        authorization_request: Components::AuthorizationRequest.new(
-          parameters: query_string(
-            'response_type' => 'code',
-            'client_id' => created.client_id.to_s,
-            'redirect_uri' => REDIRECT_URI,
-            'state' => state
+      authz = call_with_retry('/auth/authorization') do
+        sdk.authorization.process_request(
+          service_id: service_id,
+          authorization_request: Components::AuthorizationRequest.new(
+            parameters: query_string(
+              'response_type' => 'code',
+              'client_id' => created.client_id.to_s,
+              'redirect_uri' => REDIRECT_URI,
+              'state' => state
+            )
           )
         )
-      ).authorization_response
+      end.authorization_response
       refute_nil authz, '/auth/authorization returned no response body'
       assert_equal Components::AuthorizationResponseAction::INTERACTION, authz.action
       refute_empty authz.ticket.to_s, 'authorization ticket must be present'
       puts '      action=INTERACTION ticket issued'
 
       puts '[3/6] Calling /auth/authorization/issue'
-      issue = sdk.authorization.issue_response(
-        service_id: service_id,
-        authorization_issue_request: Components::AuthorizationIssueRequest.new(
-          ticket: authz.ticket,
-          subject: SUBJECT
+      issue = call_with_retry('/auth/authorization/issue') do
+        sdk.authorization.issue_response(
+          service_id: service_id,
+          authorization_issue_request: Components::AuthorizationIssueRequest.new(
+            ticket: authz.ticket,
+            subject: SUBJECT
+          )
         )
-      ).authorization_issue_response
+      end.authorization_issue_response
       refute_nil issue, '/auth/authorization/issue returned no response body'
       assert_equal Components::AuthorizationIssueResponseAction::LOCATION, issue.action
       assert_includes issue.response_content.to_s, 'code='
@@ -82,28 +90,32 @@ class AuthorizationCodeFlowTest < Minitest::Test
       puts '      action=LOCATION authorization code issued'
 
       puts '[4/6] Calling /auth/token'
-      token = sdk.tokens.process_request(
-        service_id: service_id,
-        token_request: Components::TokenRequest.new(
-          parameters: query_string(
-            'grant_type' => 'authorization_code',
-            'code' => code,
-            'redirect_uri' => REDIRECT_URI
-          ),
-          client_id: created.client_id.to_s,
-          client_secret: created.client_secret
+      token = call_with_retry('/auth/token') do
+        sdk.tokens.process_request(
+          service_id: service_id,
+          token_request: Components::TokenRequest.new(
+            parameters: query_string(
+              'grant_type' => 'authorization_code',
+              'code' => code,
+              'redirect_uri' => REDIRECT_URI
+            ),
+            client_id: created.client_id.to_s,
+            client_secret: created.client_secret
+          )
         )
-      ).token_response
+      end.token_response
       refute_nil token, '/auth/token returned no response body'
       assert_equal Components::TokenResponseAction::OK, token.action
       refute_empty token.access_token.to_s, 'access token must be present'
       puts '      action=OK access token issued'
 
       puts '[5/6] Calling /auth/introspection'
-      introspection = sdk.introspection.process_request(
-        service_id: service_id,
-        introspection_request: Components::IntrospectionRequest.new(token: token.access_token)
-      ).introspection_response
+      introspection = call_with_retry('/auth/introspection') do
+        sdk.introspection.process_request(
+          service_id: service_id,
+          introspection_request: Components::IntrospectionRequest.new(token: token.access_token)
+        )
+      end.introspection_response
       refute_nil introspection, '/auth/introspection returned no response body'
       assert_equal Components::IntrospectionResponseAction::OK, introspection.action
       assert_equal true, introspection.usable, 'introspected access token must be usable'
@@ -114,7 +126,9 @@ class AuthorizationCodeFlowTest < Minitest::Test
       if created&.client_id
         puts "[6/6] Deleting test client: #{created.client_id}"
         begin
-          sdk.clients.destroy(service_id: service_id, client_id: created.client_id.to_s)
+          call_with_retry('/client/delete') do
+            sdk.clients.destroy(service_id: service_id, client_id: created.client_id.to_s)
+          end
         rescue StandardError => e
           # Fail the test when cleanup breaks, but never mask an earlier failure.
           raise if flow_error.nil?
@@ -125,6 +139,34 @@ class AuthorizationCodeFlowTest < Minitest::Test
   end
 
   private
+
+  # Executes an Authlete API call, retrying transient errors (429 and 5xx)
+  # following https://www.authlete.com/kb/deployment/performance/ratelimit-best-practices/:
+  # honor the Ratelimit-Reset header when present, otherwise use exponential
+  # backoff (0.5 s, 1 s, 2 s) with a small random jitter.
+  def call_with_retry(label)
+    attempt = 0
+    begin
+      yield
+    rescue Authlete::Models::Errors::APIError => e
+      status = e.status_code.to_i
+      raise unless attempt < MAX_RETRIES && (status == 429 || status >= 500)
+
+      delay = retry_delay(attempt, e)
+      puts "      #{label} failed with HTTP #{status}; retrying in #{delay.round(2)}s " \
+           "(attempt #{attempt + 1}/#{MAX_RETRIES})"
+      sleep(delay)
+      attempt += 1
+      retry
+    end
+  end
+
+  def retry_delay(attempt, error)
+    reset_seconds = error.raw_response&.headers&.[]('ratelimit-reset').to_i
+    return [reset_seconds, 30].min if reset_seconds.positive?
+
+    (0.5 * (2**attempt)) + rand(0.0..0.25)
+  end
 
   def env_or_fallback(primary, fallback)
     value = ENV[primary].to_s

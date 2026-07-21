@@ -152,6 +152,11 @@ The tests read the same `AUTHLETE_*` environment variables as the sample
 applications and are skipped when credentials are not configured, so they
 never fail on a fresh checkout.
 
+Transient errors (HTTP 429 and 5xx) are retried with exponential backoff
+and jitter, honoring the `Ratelimit-Reset` header where the SDK exposes
+response headers, following the
+[rate limit best practices](https://www.authlete.com/kb/deployment/performance/ratelimit-best-practices/).
+
 | Language | Command (inside the Dev Container) | API version |
 |----------|-------------------------------------|-------------|
 | Java / Java Jakarta / Java JAX-RS | `mvn test` | V2 and V3 |

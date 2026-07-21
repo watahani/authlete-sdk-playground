@@ -68,9 +68,22 @@ test("OAuth 2.0 authorization code flow smoke test", async (t) => {
     return;
   }
 
+  // Retry transient errors (the SDK defaults to 429/500/502/503/504 and
+  // honors the Retry-After header) with exponential backoff, following
+  // https://www.authlete.com/kb/deployment/performance/ratelimit-best-practices/
   const authlete = new Authlete({
     bearer: requireEnv(bearer, "AUTHLETE_SERVICE_ACCESSTOKEN"),
     serverURL: requireEnv(serverURL, "AUTHLETE_BASE_URL"),
+    retryConfig: {
+      strategy: "backoff",
+      backoff: {
+        initialInterval: 500,
+        maxInterval: 4000,
+        exponent: 2,
+        maxElapsedTime: 30000,
+      },
+      retryConnectionErrors: true,
+    },
   });
   const resolvedServiceId = requireEnv(serviceId, "AUTHLETE_SERVICE_APIKEY");
 

@@ -4,10 +4,14 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"math/big"
+	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	authlete "github.com/authlete/openapi-for-go"
 )
@@ -17,7 +21,53 @@ const (
 	testSubject     = "sdk-playground-user"
 	// The V2 /client/create API requires a developer identifier.
 	testDeveloper = "sdk-playground-developer"
+	// Transient errors (429 and 5xx) are retried with exponential backoff.
+	maxRetries = 3
 )
+
+// callWithRetry executes an Authlete API call, retrying transient errors
+// (429 and 5xx) following
+// https://www.authlete.com/kb/deployment/performance/ratelimit-best-practices/:
+// honor the Ratelimit-Reset header when present, otherwise use exponential
+// backoff (500 ms, 1 s, 2 s) with a small random jitter.
+func callWithRetry[T any](t *testing.T, label string, call func() (T, *http.Response, error)) (T, *http.Response, error) {
+	t.Helper()
+
+	for attempt := 0; ; attempt++ {
+		result, httpResp, err := call()
+		if err == nil || httpResp == nil || attempt >= maxRetries || !isRetryableStatus(httpResp.StatusCode) {
+			return result, httpResp, err
+		}
+
+		delay := retryDelay(t, attempt, httpResp)
+		t.Logf("%s failed with HTTP %d; retrying in %v (attempt %d/%d)",
+			label, httpResp.StatusCode, delay, attempt+1, maxRetries)
+		time.Sleep(delay)
+	}
+}
+
+func isRetryableStatus(statusCode int) bool {
+	return statusCode == 429 || statusCode >= 500
+}
+
+func retryDelay(t *testing.T, attempt int, httpResp *http.Response) time.Duration {
+	t.Helper()
+
+	if value := strings.TrimSpace(httpResp.Header.Get("Ratelimit-Reset")); value != "" {
+		if seconds, err := strconv.Atoi(value); err == nil && seconds > 0 {
+			if seconds > 30 {
+				seconds = 30
+			}
+			return time.Duration(seconds) * time.Second
+		}
+	}
+
+	jitter, err := rand.Int(rand.Reader, big.NewInt(250))
+	if err != nil {
+		t.Fatalf("failed to generate retry jitter: %v", err)
+	}
+	return time.Duration(500<<attempt)*time.Millisecond + time.Duration(jitter.Int64())*time.Millisecond
+}
 
 // TestAuthorizationCodeFlow runs a minimal OAuth 2.0 authorization code flow
 // against the Authlete V2 API to verify that the SDK works in this environment:
@@ -62,7 +112,9 @@ func TestAuthorizationCodeFlow(t *testing.T) {
 	newClient.SetResponseTypes([]authlete.ResponseType{authlete.RESPONSETYPE_CODE})
 	newClient.SetRedirectUris([]string{testRedirectURI})
 
-	created, _, err := apiClient.ClientManagementApi.ClientCreateApi(ctx).Client(*newClient).Execute()
+	created, _, err := callWithRetry(t, "/client/create", func() (*authlete.Client, *http.Response, error) {
+		return apiClient.ClientManagementApi.ClientCreateApi(ctx).Client(*newClient).Execute()
+	})
 	if err != nil {
 		t.Fatalf("/client/create failed: %v", err)
 	}
@@ -71,7 +123,10 @@ func TestAuthorizationCodeFlow(t *testing.T) {
 
 	// Always clean up the client, even when the flow fails halfway.
 	defer func() {
-		_, err := apiClient.ClientManagementApi.ClientDeleteApi(ctx, fmt.Sprintf("%d", clientID)).Execute()
+		_, _, err := callWithRetry(t, "/client/delete", func() (struct{}, *http.Response, error) {
+			httpResp, err := apiClient.ClientManagementApi.ClientDeleteApi(ctx, fmt.Sprintf("%d", clientID)).Execute()
+			return struct{}{}, httpResp, err
+		})
 		if err != nil {
 			t.Errorf("/client/delete failed for client %d: %v", clientID, err)
 			return
@@ -88,7 +143,9 @@ func TestAuthorizationCodeFlow(t *testing.T) {
 	authzParams.Set("state", state)
 
 	authzReq := authlete.NewAuthorizationRequest(authzParams.Encode())
-	authzResp, _, err := apiClient.AuthorizationEndpointApi.AuthAuthorizationApi(ctx).AuthorizationRequest(*authzReq).Execute()
+	authzResp, _, err := callWithRetry(t, "/auth/authorization", func() (*authlete.AuthorizationResponse, *http.Response, error) {
+		return apiClient.AuthorizationEndpointApi.AuthAuthorizationApi(ctx).AuthorizationRequest(*authzReq).Execute()
+	})
 	if err != nil {
 		t.Fatalf("/auth/authorization failed: %v", err)
 	}
@@ -103,7 +160,9 @@ func TestAuthorizationCodeFlow(t *testing.T) {
 
 	// Step 3: /auth/authorization/issue
 	issueReq := authlete.NewAuthorizationIssueRequest(ticket, testSubject)
-	issueResp, _, err := apiClient.AuthorizationEndpointApi.AuthAuthorizationIssueApi(ctx).AuthorizationIssueRequest(*issueReq).Execute()
+	issueResp, _, err := callWithRetry(t, "/auth/authorization/issue", func() (*authlete.AuthorizationIssueResponse, *http.Response, error) {
+		return apiClient.AuthorizationEndpointApi.AuthAuthorizationIssueApi(ctx).AuthorizationIssueRequest(*issueReq).Execute()
+	})
 	if err != nil {
 		t.Fatalf("/auth/authorization/issue failed: %v", err)
 	}
@@ -136,7 +195,9 @@ func TestAuthorizationCodeFlow(t *testing.T) {
 	tokenReq := authlete.NewTokenRequest(tokenParams.Encode())
 	tokenReq.SetClientId(fmt.Sprintf("%d", clientID))
 	tokenReq.SetClientSecret(created.GetClientSecret())
-	tokenResp, _, err := apiClient.TokenEndpointApi.AuthTokenApi(ctx).TokenRequest(*tokenReq).Execute()
+	tokenResp, _, err := callWithRetry(t, "/auth/token", func() (*authlete.TokenResponse, *http.Response, error) {
+		return apiClient.TokenEndpointApi.AuthTokenApi(ctx).TokenRequest(*tokenReq).Execute()
+	})
 	if err != nil {
 		t.Fatalf("/auth/token failed: %v", err)
 	}
@@ -151,7 +212,9 @@ func TestAuthorizationCodeFlow(t *testing.T) {
 
 	// Step 5: /auth/introspection
 	introReq := authlete.NewIntrospectionRequest(accessToken)
-	introResp, _, err := apiClient.IntrospectionEndpointApi.AuthIntrospectionApi(ctx).IntrospectionRequest(*introReq).Execute()
+	introResp, _, err := callWithRetry(t, "/auth/introspection", func() (*authlete.IntrospectionResponse, *http.Response, error) {
+		return apiClient.IntrospectionEndpointApi.AuthIntrospectionApi(ctx).IntrospectionRequest(*introReq).Execute()
+	})
 	if err != nil {
 		t.Fatalf("/auth/introspection failed: %v", err)
 	}

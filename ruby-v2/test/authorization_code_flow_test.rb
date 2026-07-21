@@ -8,6 +8,8 @@ require 'authlete'
 class AuthorizationCodeFlowTest < Minitest::Test
   REDIRECT_URI = 'https://sdk-playground.example.com/callback'
   SUBJECT = 'sdk-playground-user'
+  # Transient errors (429 and 5xx) are retried with exponential backoff.
+  MAX_RETRIES = 3
 
   def test_authorization_code_flow
     base_url, api_key, api_secret = resolve_v2_credentials!
@@ -25,16 +27,18 @@ class AuthorizationCodeFlowTest < Minitest::Test
       state = random_alnum(24)
 
       puts "[smoke] Step 1: creating client #{client_name}"
-      client = api.client_create(
-        Authlete::Model::Client.new(
-          clientName: client_name,
-          developer: 'sdk-playground-developer', # required by the V2 /client/create API
-          clientType: 'CONFIDENTIAL',
-          grantTypes: ['AUTHORIZATION_CODE'],
-          responseTypes: ['CODE'],
-          redirectUris: [REDIRECT_URI]
+      client = call_with_retry('/client/create') do
+        api.client_create(
+          Authlete::Model::Client.new(
+            clientName: client_name,
+            developer: 'sdk-playground-developer', # required by the V2 /client/create API
+            clientType: 'CONFIDENTIAL',
+            grantTypes: ['AUTHORIZATION_CODE'],
+            responseTypes: ['CODE'],
+            redirectUris: [REDIRECT_URI]
+          )
         )
-      )
+      end
 
       client_id = read_field(client, :client_id, :clientId)
       client_secret = read_field(client, :client_secret, :clientSecret)
@@ -51,7 +55,9 @@ class AuthorizationCodeFlowTest < Minitest::Test
       ].join('&')
 
       puts '[smoke] Step 2: calling /auth/authorization'
-      authorization_response = api.authorization(parameters: authorization_parameters)
+      authorization_response = call_with_retry('/auth/authorization') do
+        api.authorization(parameters: authorization_parameters)
+      end
       assert_equal 'INTERACTION', read_field(authorization_response, :action)
 
       ticket = read_field(authorization_response, :ticket)
@@ -59,7 +65,9 @@ class AuthorizationCodeFlowTest < Minitest::Test
       puts '[smoke] Step 2 result: action=INTERACTION, ticket issued'
 
       puts '[smoke] Step 3: calling /auth/authorization/issue'
-      issue_response = api.authorization_issue(ticket: ticket, subject: SUBJECT)
+      issue_response = call_with_retry('/auth/authorization/issue') do
+        api.authorization_issue(ticket: ticket, subject: SUBJECT)
+      end
       assert_equal 'LOCATION', read_field(issue_response, :action)
 
       redirect_location = read_field(issue_response, :response_content, :responseContent)
@@ -78,11 +86,13 @@ class AuthorizationCodeFlowTest < Minitest::Test
       ].join('&')
 
       puts '[smoke] Step 4: calling /auth/token'
-      token_response = api.token(
-        parameters: token_parameters,
-        clientId: client_id.to_s,
-        clientSecret: client_secret
-      )
+      token_response = call_with_retry('/auth/token') do
+        api.token(
+          parameters: token_parameters,
+          clientId: client_id.to_s,
+          clientSecret: client_secret
+        )
+      end
       assert_equal 'OK', read_field(token_response, :action)
 
       access_token = read_field(token_response, :access_token, :accessToken)
@@ -90,7 +100,9 @@ class AuthorizationCodeFlowTest < Minitest::Test
       puts "[smoke] Step 4 result: accessTokenLength=#{access_token.length}"
 
       puts '[smoke] Step 5: calling /auth/introspection'
-      introspection_response = api.introspection(token: access_token)
+      introspection_response = call_with_retry('/auth/introspection') do
+        api.introspection(token: access_token)
+      end
       assert_equal 'OK', read_field(introspection_response, :action)
       assert_equal true, read_field(introspection_response, :usable),
                    'introspected access token must be usable'
@@ -105,7 +117,7 @@ class AuthorizationCodeFlowTest < Minitest::Test
         unless client_id.to_i.zero?
           puts "[smoke] Cleanup: deleting clientId=#{client_id}"
           begin
-            api.client_delete(client_id)
+            call_with_retry('/client/delete') { api.client_delete(client_id) }
             puts '[smoke] Cleanup result: client deleted'
           rescue StandardError => e
             # Fail the test when cleanup breaks, but never mask an earlier failure.
@@ -118,6 +130,28 @@ class AuthorizationCodeFlowTest < Minitest::Test
   end
 
   private
+
+  # Executes an Authlete API call, retrying transient errors (429 and 5xx)
+  # following https://www.authlete.com/kb/deployment/performance/ratelimit-best-practices/
+  # with exponential backoff (0.5 s, 1 s, 2 s) and a small random jitter.
+  # (Authlete::Exception does not expose response headers, so the
+  # Ratelimit-Reset header cannot be honored here.)
+  def call_with_retry(label)
+    attempt = 0
+    begin
+      yield
+    rescue Authlete::Exception => e
+      status = e.status_code.to_i
+      raise unless attempt < MAX_RETRIES && (status == 429 || status >= 500)
+
+      delay = (0.5 * (2**attempt)) + rand(0.0..0.25)
+      puts "[smoke] #{label} failed with HTTP #{status}; retrying in #{delay.round(2)}s " \
+           "(attempt #{attempt + 1}/#{MAX_RETRIES})"
+      sleep(delay)
+      attempt += 1
+      retry
+    end
+  end
 
   # Prefer the version-specific AUTHLETE_V2_* variables; fall back to the
   # plain AUTHLETE_* variables when they hold a V2 configuration.

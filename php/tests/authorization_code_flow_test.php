@@ -10,6 +10,7 @@
 
 require __DIR__ . '/../vendor/autoload.php';
 
+use Authlete\Api\AuthleteApiException;
 use Authlete\Api\AuthleteApiImpl;
 use Authlete\Conf\AuthleteSimpleConfiguration;
 use Authlete\Dto\AuthorizationAction;
@@ -29,6 +30,8 @@ const REDIRECT_URI = 'https://sdk-playground.example.com/callback';
 const SUBJECT      = 'sdk-playground-user';
 // The V2 /client/create API requires a developer identifier.
 const DEVELOPER    = 'sdk-playground-developer';
+// Transient errors (429 and 5xx) are retried with exponential backoff.
+const MAX_RETRIES  = 3;
 
 function assertThat(bool $condition, string $message): void
 {
@@ -36,6 +39,56 @@ function assertThat(bool $condition, string $message): void
     {
         throw new RuntimeException($message);
     }
+}
+
+/**
+ * Executes an Authlete API call, retrying transient errors (429 and 5xx)
+ * following https://www.authlete.com/kb/deployment/performance/ratelimit-best-practices/:
+ * honor the Ratelimit-Reset header when present, otherwise use exponential
+ * backoff (500 ms, 1 s, 2 s) with a small random jitter.
+ */
+function callWithRetry(string $label, callable $call)
+{
+    for ($attempt = 0; ; $attempt++)
+    {
+        try
+        {
+            return $call();
+        }
+        catch (AuthleteApiException $e)
+        {
+            $status = $e->getStatusCode();
+            if ($attempt >= MAX_RETRIES || !($status === 429 || $status >= 500))
+            {
+                throw $e;
+            }
+
+            $delayMs = retryDelayMillis($attempt, $e->getResponseHeaders());
+            echo "      {$label} failed with HTTP {$status}; retrying in {$delayMs} ms"
+                . ' (attempt ' . ($attempt + 1) . '/' . MAX_RETRIES . ")\n";
+            usleep($delayMs * 1000);
+        }
+    }
+}
+
+function retryDelayMillis(int $attempt, ?array $headers): int
+{
+    foreach (($headers ?? []) as $name => $values)
+    {
+        if (strcasecmp((string)$name, 'Ratelimit-Reset') !== 0)
+        {
+            continue;
+        }
+
+        $value   = is_array($values) ? (string)($values[0] ?? '') : (string)$values;
+        $seconds = (int)trim($value);
+        if ($seconds > 0)
+        {
+            return min($seconds, 30) * 1000;
+        }
+    }
+
+    return (500 << $attempt) + random_int(0, 250);
 }
 
 function queryValue(string $url, string $key): ?string
@@ -87,7 +140,7 @@ try
     $clientName = 'sdk-playground-smoke-' . bin2hex(random_bytes(6));
     echo "[1/6] Creating test client: {$clientName}\n";
 
-    $created = $api->createClient(
+    $created = callWithRetry('/client/create', fn() => $api->createClient(
         (new Client())
             ->setClientName($clientName)
             ->setDeveloper(DEVELOPER)
@@ -95,7 +148,7 @@ try
             ->setGrantTypes([GrantType::$AUTHORIZATION_CODE])
             ->setResponseTypes([ResponseType::$CODE])
             ->setRedirectUris([REDIRECT_URI])
-    );
+    ));
     assertThat($created->getClientId() > 0, '/client/create returned no clientId');
     assertThat((string)$created->getClientSecret() !== '', '/client/create returned no clientSecret');
     echo '      clientId=' . $created->getClientId() . "\n";
@@ -104,7 +157,7 @@ try
     $state = bin2hex(random_bytes(8));
     echo "[2/6] Calling /auth/authorization\n";
 
-    $authzResponse = $api->authorization(
+    $authzResponse = callWithRetry('/auth/authorization', fn() => $api->authorization(
         (new AuthorizationRequest())
             ->setParameters(http_build_query([
                 'response_type' => 'code',
@@ -112,7 +165,7 @@ try
                 'redirect_uri'  => REDIRECT_URI,
                 'state'         => $state,
             ]))
-    );
+    ));
     assertThat(
         $authzResponse->getAction() === AuthorizationAction::$INTERACTION,
         'expected action INTERACTION, got ' . var_export($authzResponse->getAction(), true)
@@ -123,11 +176,11 @@ try
     // Step 3: /auth/authorization/issue
     echo "[3/6] Calling /auth/authorization/issue\n";
 
-    $issueResponse = $api->authorizationIssue(
+    $issueResponse = callWithRetry('/auth/authorization/issue', fn() => $api->authorizationIssue(
         (new AuthorizationIssueRequest())
             ->setTicket($authzResponse->getTicket())
             ->setSubject(SUBJECT)
-    );
+    ));
     assertThat(
         $issueResponse->getAction() === AuthorizationIssueAction::$LOCATION,
         'expected action LOCATION, got ' . var_export($issueResponse->getAction(), true)
@@ -142,7 +195,7 @@ try
     // Step 4: /auth/token
     echo "[4/6] Calling /auth/token\n";
 
-    $tokenResponse = $api->token(
+    $tokenResponse = callWithRetry('/auth/token', fn() => $api->token(
         (new TokenRequest())
             ->setParameters(http_build_query([
                 'grant_type'   => 'authorization_code',
@@ -151,7 +204,7 @@ try
             ]))
             ->setClientId((string)$created->getClientId())
             ->setClientSecret($created->getClientSecret())
-    );
+    ));
     assertThat(
         $tokenResponse->getAction() === TokenAction::$OK,
         'expected action OK, got ' . var_export($tokenResponse->getAction(), true)
@@ -163,9 +216,9 @@ try
     // Step 5: /auth/introspection
     echo "[5/6] Calling /auth/introspection\n";
 
-    $introspectionResponse = $api->introspection(
+    $introspectionResponse = callWithRetry('/auth/introspection', fn() => $api->introspection(
         (new IntrospectionRequest())->setToken($accessToken)
-    );
+    ));
     assertThat(
         $introspectionResponse->getAction() === IntrospectionAction::$OK,
         'expected action OK, got ' . var_export($introspectionResponse->getAction(), true)
@@ -201,7 +254,7 @@ finally
         echo '[6/6] Deleting test client: ' . $created->getClientId() . "\n";
         try
         {
-            $api->deleteClient($created->getClientId());
+            callWithRetry('/client/delete', fn() => $api->deleteClient($created->getClientId()));
         }
         catch (Throwable $e)
         {

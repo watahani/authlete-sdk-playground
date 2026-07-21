@@ -10,12 +10,14 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 import com.authlete.common.api.AuthleteApi;
+import com.authlete.common.api.AuthleteApiException;
 import com.authlete.common.api.AuthleteApiFactory;
 import com.authlete.common.conf.AuthleteSimpleConfiguration;
 import com.authlete.common.dto.AuthorizationIssueRequest;
@@ -48,6 +50,8 @@ public class AuthorizationCodeFlowSmokeTest {
     private static final String SUBJECT = "sdk-playground-user";
     // The V2 /client/create API requires a developer identifier.
     private static final String DEVELOPER = "sdk-playground-developer";
+    // Transient errors (429 and 5xx) are retried with exponential backoff.
+    private static final int MAX_RETRIES = 3;
     private static final SecureRandom RANDOM = new SecureRandom();
 
     @Test
@@ -113,7 +117,7 @@ public class AuthorizationCodeFlowSmokeTest {
                     .setGrantTypes(new GrantType[] { GrantType.AUTHORIZATION_CODE })
                     .setResponseTypes(new ResponseType[] { ResponseType.CODE })
                     .setRedirectUris(new String[] { REDIRECT_URI });
-            createdClient = api.createClient(clientRequest);
+            createdClient = callWithRetry(label, "/client/create", () -> api.createClient(clientRequest));
             assertNotNull(createdClient, "Created client must not be null");
             assertTrue(createdClient.getClientId() > 0, "Created client ID must be positive");
             assertNotNull(createdClient.getClientSecret(), "Created client secret must not be null");
@@ -127,7 +131,8 @@ public class AuthorizationCodeFlowSmokeTest {
                     + "&state=" + encode(state);
             AuthorizationRequest authorizationRequest = new AuthorizationRequest()
                     .setParameters(authorizationParameters);
-            AuthorizationResponse authorizationResponse = api.authorization(authorizationRequest);
+            AuthorizationResponse authorizationResponse =
+                    callWithRetry(label, "/auth/authorization", () -> api.authorization(authorizationRequest));
             assertEquals(AuthorizationResponse.Action.INTERACTION, authorizationResponse.getAction(),
                     "Authorization action must be INTERACTION");
             assertNotNull(authorizationResponse.getTicket(), "Authorization ticket must not be null");
@@ -137,7 +142,8 @@ public class AuthorizationCodeFlowSmokeTest {
             AuthorizationIssueRequest issueRequest = new AuthorizationIssueRequest()
                     .setTicket(authorizationResponse.getTicket())
                     .setSubject(SUBJECT);
-            AuthorizationIssueResponse issueResponse = api.authorizationIssue(issueRequest);
+            AuthorizationIssueResponse issueResponse =
+                    callWithRetry(label, "/auth/authorization/issue", () -> api.authorizationIssue(issueRequest));
             assertEquals(AuthorizationIssueResponse.Action.LOCATION, issueResponse.getAction(),
                     "Authorization issue action must be LOCATION");
             assertNotNull(issueResponse.getResponseContent(), "Authorization issue response content must not be null");
@@ -159,7 +165,7 @@ public class AuthorizationCodeFlowSmokeTest {
                     .setParameters(tokenParameters)
                     .setClientId(String.valueOf(createdClient.getClientId()))
                     .setClientSecret(createdClient.getClientSecret());
-            TokenResponse tokenResponse = api.token(tokenRequest);
+            TokenResponse tokenResponse = callWithRetry(label, "/auth/token", () -> api.token(tokenRequest));
             assertEquals(TokenResponse.Action.OK, tokenResponse.getAction(), "Token action must be OK");
             assertNotNull(tokenResponse.getAccessToken(), "Access token must not be null");
             assertFalse(tokenResponse.getAccessToken().isBlank(), "Access token must not be blank");
@@ -168,7 +174,8 @@ public class AuthorizationCodeFlowSmokeTest {
             System.out.println("[smoke:" + label + "] Step 5: Introspecting the access token");
             IntrospectionRequest introspectionRequest = new IntrospectionRequest()
                     .setToken(tokenResponse.getAccessToken());
-            IntrospectionResponse introspectionResponse = api.introspection(introspectionRequest);
+            IntrospectionResponse introspectionResponse =
+                    callWithRetry(label, "/auth/introspection", () -> api.introspection(introspectionRequest));
             assertEquals(IntrospectionResponse.Action.OK, introspectionResponse.getAction(),
                     "Introspection action must be OK");
             assertTrue(introspectionResponse.isUsable(), "Introspected access token must be usable");
@@ -185,8 +192,12 @@ public class AuthorizationCodeFlowSmokeTest {
             if (createdClient != null && createdClient.getClientId() > 0) {
                 System.out.println("[smoke:" + label + "] Cleanup: deleting clientId=" + createdClient.getClientId());
                 try {
-                    api.deleteClient(createdClient.getClientId());
-                    verifyClientDeleted(api, createdClient.getClientId());
+                    long clientId = createdClient.getClientId();
+                    callWithRetry(label, "/client/delete", () -> {
+                        api.deleteClient(clientId);
+                        return null;
+                    });
+                    verifyClientDeleted(label, api, clientId);
                     System.out.println("[smoke:" + label + "] Cleanup result: client deleted");
                 } catch (RuntimeException e) {
                     if (failure != null) {
@@ -215,9 +226,16 @@ public class AuthorizationCodeFlowSmokeTest {
      * the deletion, which would leak clients and eventually exhaust the
      * service's client quota.
      */
-    private static void verifyClientDeleted(AuthleteApi api, long clientId) {
+    private static void verifyClientDeleted(String label, AuthleteApi api, long clientId) {
         try {
-            api.getClient(clientId);
+            callWithRetry(label, "/client/get (verify deletion)", () -> api.getClient(clientId));
+        } catch (AuthleteApiException e) {
+            if (isRetryableStatus(e.getStatusCode())) {
+                throw new IllegalStateException(
+                        "Could not verify the deletion of client " + clientId, e);
+            }
+            // Expected: the client no longer exists.
+            return;
         } catch (RuntimeException e) {
             // Expected: the client no longer exists.
             return;
@@ -225,6 +243,78 @@ public class AuthorizationCodeFlowSmokeTest {
 
         throw new IllegalStateException(
                 "Client " + clientId + " still exists after deleteClient()");
+    }
+
+    @FunctionalInterface
+    private interface ApiCall<T> {
+        T call();
+    }
+
+    /**
+     * Executes an Authlete API call, retrying transient errors (429 and 5xx)
+     * following https://www.authlete.com/kb/deployment/performance/ratelimit-best-practices/:
+     * honor the Ratelimit-Reset header when present, otherwise use exponential
+     * backoff (500 ms, 1 s, 2 s) with a small random jitter.
+     */
+    private static <T> T callWithRetry(String label, String api, ApiCall<T> call) {
+        for (int attempt = 0; ; attempt++) {
+            try {
+                return call.call();
+            } catch (AuthleteApiException e) {
+                if (attempt >= MAX_RETRIES || !isRetryableStatus(e.getStatusCode())) {
+                    throw e;
+                }
+
+                long delayMillis = retryDelayMillis(attempt, e.getResponseHeaders());
+                System.out.println("[smoke:" + label + "] " + api + " failed with HTTP " + e.getStatusCode()
+                        + "; retrying in " + delayMillis + " ms (attempt " + (attempt + 1) + "/" + MAX_RETRIES + ")");
+                sleep(delayMillis);
+            }
+        }
+    }
+
+    private static boolean isRetryableStatus(int statusCode) {
+        return statusCode == 429 || statusCode >= 500;
+    }
+
+    private static long retryDelayMillis(int attempt, Map<String, List<String>> headers) {
+        long resetSeconds = ratelimitResetSeconds(headers);
+
+        if (resetSeconds > 0) {
+            return Math.min(resetSeconds, 30) * 1000L;
+        }
+
+        return (500L << attempt) + RANDOM.nextInt(250);
+    }
+
+    private static long ratelimitResetSeconds(Map<String, List<String>> headers) {
+        if (headers == null) {
+            return 0;
+        }
+
+        for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
+            if (entry.getKey() == null || !entry.getKey().equalsIgnoreCase("Ratelimit-Reset")
+                    || entry.getValue() == null || entry.getValue().isEmpty()) {
+                continue;
+            }
+
+            try {
+                return Long.parseLong(entry.getValue().get(0).trim());
+            } catch (NumberFormatException e) {
+                return 0;
+            }
+        }
+
+        return 0;
+    }
+
+    private static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting to retry", e);
+        }
     }
 
     /**

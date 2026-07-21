@@ -152,6 +152,11 @@ SDKでは以下の環境変数が使用されます：
 資格情報が設定されていない場合はスキップされるため、チェックアウト直後でも
 失敗しません。
 
+一時的なエラー（HTTP 429 および 5xx）は
+[レートリミットのベストプラクティス](https://www.authlete.com/ja/kb/deployment/performance/ratelimit-best-practices/)
+に従い、指数バックオフ + ジッターでリトライします（SDK がレスポンスヘッダーを
+公開している場合は `Ratelimit-Reset` ヘッダーを優先します）。
+
 | 言語 | コマンド（Dev Container 内で実行） | API バージョン |
 |------|-------------------------------------|----------------|
 | Java / Java Jakarta / Java JAX-RS | `mvn test` | V2 と V3 |
