@@ -1,0 +1,5 @@
+services:
+  worker:
+    build:
+      context: ../../go-v3
+      dockerfile: Dockerfile
