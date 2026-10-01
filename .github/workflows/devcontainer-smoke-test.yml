@@ -32,6 +32,10 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
+      # Run the languages one at a time: they share the same V2 / V3 services,
+      # and creating test clients concurrently hits the service's client limit
+      # (HTTP 402 from /client/create).
+      max-parallel: 1
       matrix:
         include:
           # Every test reads the version-specific AUTHLETE_V2_* / AUTHLETE_V3_*
