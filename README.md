@@ -14,7 +14,8 @@ The following languages are currently implemented:
 | Java Jakarta | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/java-jakarta/devcontainer.json) |
 | Java JAX-RS (legacy) | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/java-jaxrs/devcontainer.json) |
 | C# | 🚧 Coming Soon | |
-| Go | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/go/devcontainer.json) |
+| Go (v2) | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/go/devcontainer.json) |
+| Go (v3) | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/go-v3/devcontainer.json) |
 | JavaScript | 🚧 Coming Soon | |
 | Python | 🚧 Coming Soon | |
 | Ruby (v2) | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/ruby-v2/devcontainer.json) |
@@ -160,7 +161,8 @@ response headers, following the
 | Language | Command (inside the Dev Container) | API version |
 |----------|-------------------------------------|-------------|
 | Java / Java Jakarta / Java JAX-RS | `mvn test` | V2 and V3 |
-| Go | `go test ./...` | V2 only |
+| Go (v2) | `go test ./...` | V2 only |
+| Go (v3) | `go test ./...` | V3 only |
 | Ruby (v3) | `bundle exec ruby test/authorization_code_flow_test.rb` | V3 only |
 | Ruby (v2) | `bundle exec ruby test/authorization_code_flow_test.rb` | V2 only |
 | TypeScript | `npm test` | V3 only |
