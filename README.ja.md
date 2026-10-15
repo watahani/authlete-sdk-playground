@@ -13,7 +13,8 @@ Visual Studio CodeのDev Containers または GitHub Codespaces を使用する�
 | Java Jakarta | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/java-jakarta/devcontainer.json) |
 | Java JAX-RS (レガシー) | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/java-jaxrs/devcontainer.json) |
 | C# | 🚧 近日公開 | |
-| Go | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/go/devcontainer.json) |
+| Go (v2) | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/go/devcontainer.json) |
+| Go (v3) | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/go-v3/devcontainer.json) |
 | JavaScript | 🚧 近日公開 | |
 | Python | 🚧 近日公開 | |
 | Ruby (v2) | ✅ | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/watahani/authlete-sdk-playground?devcontainer_path=.devcontainer/ruby-v2/devcontainer.json) |
@@ -160,7 +161,8 @@ SDKでは以下の環境変数が使用されます：
 | 言語 | コマンド（Dev Container 内で実行） | API バージョン |
 |------|-------------------------------------|----------------|
 | Java / Java Jakarta / Java JAX-RS | `mvn test` | V2 と V3 |
-| Go | `go test ./...` | V2 のみ |
+| Go (v2) | `go test ./...` | V2 のみ |
+| Go (v3) | `go test ./...` | V3 のみ |
 | Ruby (v3) | `bundle exec ruby test/authorization_code_flow_test.rb` | V3 のみ |
 | Ruby (v2) | `bundle exec ruby test/authorization_code_flow_test.rb` | V2 のみ |
 | TypeScript | `npm test` | V3 のみ |

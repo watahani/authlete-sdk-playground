@@ -16,6 +16,7 @@ on:
       - 'java-jakarta/**'
       - 'java-jaxrs/**'
       - 'go/**'
+      - 'go-v3/**'
       - 'ruby/**'
       - 'ruby-v2/**'
       - 'typescript/**'
@@ -48,6 +49,8 @@ jobs:
           - lang: java-jaxrs
             test_cmd: mvn -B test
           - lang: go # V2 only
+            test_cmd: go test -v ./...
+          - lang: go-v3 # V3 only
             test_cmd: go test -v ./...
           - lang: ruby # V3 only
             test_cmd: bundle install && bundle exec ruby test/authorization_code_flow_test.rb
